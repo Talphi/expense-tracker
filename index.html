@@ -3,279 +3,475 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Eating Out – Split Flow</title>
+  <title>Split – Expense Tracker</title>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * { margin:0; padding:0; box-sizing:border-box; }
     body {
-      background: #1C1B19;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: 'Inter', sans-serif;
-      gap: 0;
+      background:#111;
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      font-family:'Inter',sans-serif;
     }
     .phone {
-      width: 390px;
-      height: 844px;
-      border-radius: 44px;
-      overflow: hidden;
-      box-shadow: 0 0 0 1px rgba(255,255,255,0.08), 0 40px 100px rgba(0,0,0,0.6);
-      position: relative;
-      flex-shrink: 0;
+      width:390px; height:844px;
+      border-radius:44px; overflow:hidden;
+      box-shadow:0 0 0 1px rgba(255,255,255,0.07), 0 40px 100px rgba(0,0,0,0.7);
+      position:relative; flex-shrink:0;
+      background:#F5F3EF;
     }
     .screen {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      background: #F5F3EF;
-      transition: transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.35s;
+      position:absolute; inset:0;
+      display:flex; flex-direction:column;
+      transition:transform .35s cubic-bezier(.4,0,.2,1), opacity .35s;
     }
-    .screen.hidden-left  { transform: translateX(-100%); opacity: 0; pointer-events: none; }
-    .screen.hidden-right { transform: translateX( 100%); opacity: 0; pointer-events: none; }
-    .pill-track {
-      position: absolute;
-      bottom: 14px;
-      left: 0; right: 0;
-      display: flex;
-      gap: 6px;
-      align-items: center;
-      justify-content: center;
-      z-index: 100;
-      pointer-events: none;
+    .screen.hl { transform:translateX(-100%); opacity:0; pointer-events:none; }
+    .screen.hr { transform:translateX( 100%); opacity:0; pointer-events:none; }
+    .dots {
+      position:absolute; bottom:14px; left:0; right:0;
+      display:flex; gap:6px; align-items:center; justify-content:center;
+      z-index:100; pointer-events:none;
     }
-    .pill-dot {
-      width: 6px; height: 6px; border-radius: 50%;
-      background: rgba(28,27,25,0.15);
-      transition: all 0.3s;
-    }
-    .pill-dot.active { width: 20px; border-radius: 3px; background: #FF4422; }
+    .dot { width:6px; height:6px; border-radius:50%; background:rgba(28,27,25,.15); transition:all .3s; }
+    .dot.on { width:20px; border-radius:3px; background:#FF4422; }
+    @keyframes fadeUp   { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
+    @keyframes fadeIn   { from{opacity:0} to{opacity:1} }
+    @keyframes slideUp  { from{transform:translateY(100%)} to{transform:translateY(0)} }
+    @keyframes fadeSlide{ from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:none} }
+    @keyframes pop      { 0%{transform:scale(.85);opacity:0} 60%{transform:scale(1.05)} 100%{transform:scale(1);opacity:1} }
+    input:focus { outline:none; }
   </style>
 </head>
 <body>
-
-<div class="phone" id="root">
-  <div class="pill-track" id="dots"></div>
-</div>
+<div class="phone" id="root"><div class="dots" id="dots"></div></div>
 
 <script type="text/babel">
-
-/* ─── Data ─────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════
+   DATA
+═══════════════════════════════════════════════════ */
 const ITEMS = [
-  { id: 1, name: "Croque Monsieur", qty: 2, price: 22.00, unit: 11.00 },
-  { id: 2, name: "Caesar Salad",    qty: 1, price: 14.50, unit: 14.50 },
-  { id: 3, name: "Flat White",      qty: 2, price: 12.00, unit: 6.00  },
-  { id: 4, name: "Croissant",       qty: 3, price: 18.00, unit: 6.00  },
-  { id: 5, name: "Sparkling Water", qty: 1, price: 6.00,  unit: 6.00  },
+  { id:1, name:"Croque Monsieur", qty:2, price:22.00, unit:11.00 },
+  { id:2, name:"Caesar Salad",    qty:1, price:14.50, unit:14.50 },
+  { id:3, name:"Flat White",      qty:2, price:12.00, unit:6.00  },
+  { id:4, name:"Croissant",       qty:3, price:18.00, unit:6.00  },
+  { id:5, name:"Sparkling Water", qty:1, price:6.00,  unit:6.00  },
 ];
 const SERVICE = 8.50, TAX = 3.50, TOTAL = 84.50;
 
 const PEOPLE = [
-  { name: "You",    avatar: "Y", color: "#FF4422", items: [1,3], confirmed: true  },
-  { name: "Priya",  avatar: "P", color: "#5B7FFF", items: [2,4], confirmed: false },
-  { name: "Marcus", avatar: "M", color: "#2BA97A", items: [1,5], confirmed: false },
-  { name: "Sasha",  avatar: "S", color: "#E6A817", items: [3,4], confirmed: false },
+  { name:"You",    color:"#FF4422", items:[1,3], confirmed:true  },
+  { name:"Priya",  color:"#5B7FFF", items:[2,4], confirmed:false },
+  { name:"Marcus", color:"#2BA97A", items:[1,5], confirmed:false },
+  { name:"Sasha",  color:"#E6A817", items:[3,4], confirmed:false },
 ];
 
-const fmt = (n) => `$${n.toFixed(2)}`;
+/* Item claim counts → shared split */
+const CLAIMS = {};
+PEOPLE.forEach(p => p.items.forEach(id => { CLAIMS[id] = (CLAIMS[id]||0)+1; }));
+const itemShare = id => { const it=ITEMS.find(i=>i.id===id); return it.price/CLAIMS[id]; };
+const perHead   = (SERVICE+TAX)/PEOPLE.length;
+const personAmt = p => p.items.reduce((s,id)=>s+itemShare(id),0)+perHead;
 
-/* Daily spending for March 2026 (up to today Mar 17) */
+/* Daily spending March 2026 */
 const DAILY_SPEND = {
   2:23.50, 3:45.20, 4:12.00, 5:67.80, 6:89.00, 7:34.50,
   9:28.00, 10:56.40, 11:19.80, 12:43.20, 13:78.50, 14:22.00,
   16:31.60, 17:84.50,
 };
 
-const DAY_LABELS = ['Mo','Tu','We','Th','Fr','Sa','Su'];
+/* March 2026: starts Sunday → offset 6 (Mon-first grid) */
+const MARCH_GRID = (() => {
+  const c = Array(6).fill(null);
+  for (let d=1;d<=31;d++) c.push(d);
+  while(c.length%7!==0) c.push(null);
+  return c;
+})();
+const DAY_HDR = ['Mo','Tu','We','Th','Fr','Sa','Su'];
 
-/* March 1, 2026 = Sunday → offset 6 with Mon-first grid */
-function buildMarchGrid() {
-  const cells = Array(6).fill(null);
-  for (let d = 1; d <= 31; d++) cells.push(d);
-  while (cells.length % 7 !== 0) cells.push(null);
-  return cells;
-}
-
-function CalendarSheet({ selectedDay, onSelect, onClose }) {
-  const [sel, setSel] = React.useState(selectedDay);
-  const cells = buildMarchGrid();
-  const maxSpend = Math.max(...Object.values(DAILY_SPEND));
-
-  const confirm = () => { onSelect(sel); onClose(); };
-
-  return (
-    <>
-      <div onClick={onClose} style={{ position:'absolute', inset:0,
-        background:'rgba(28,27,25,0.45)', zIndex:200 }} />
-      <div style={{ position:'absolute', bottom:0, left:0, right:0,
-        background:'#fff', borderRadius:'24px 24px 0 0', zIndex:201,
-        paddingBottom:36, animation:'slideUp 0.28s cubic-bezier(0.4,0,0.2,1)' }}>
-
-        {/* Handle */}
-        <div style={{ width:36, height:4, borderRadius:2, background:C.border, margin:'12px auto 0' }} />
-
-        {/* Month header */}
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 24px 16px' }}>
-          <span style={{ fontFamily:'Inter', fontWeight:700, fontSize:18, color:C.dark, letterSpacing:'-0.02em' }}>
-            March 2026
-          </span>
-          <div style={{ display:'flex', gap:4 }}>
-            {['‹','›'].map((ch, i) => (
-              <div key={i} style={{ width:32, height:32, borderRadius:10, background:C.light,
-                display:'flex', alignItems:'center', justifyContent:'center',
-                fontFamily:'Inter', fontSize:18, color:C.muted, cursor:'pointer', userSelect:'none' }}>
-                {ch}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Day-of-week headers */}
-        <div style={{ display:'flex', paddingInline:16, marginBottom:4 }}>
-          {DAY_LABELS.map(d => (
-            <div key={d} style={{ flex:1, textAlign:'center', fontFamily:'Inter',
-              fontWeight:500, fontSize:11, color:C.faint, letterSpacing:'0.05em' }}>{d}</div>
-          ))}
-        </div>
-
-        {/* Grid */}
-        <div style={{ display:'flex', flexWrap:'wrap', paddingInline:16 }}>
-          {cells.map((day, i) => {
-            if (!day) return <div key={`e${i}`} style={{ flex:'0 0 calc(100%/7)', height:54 }} />;
-            const spend   = DAILY_SPEND[day] || 0;
-            const isSel   = day === sel;
-            const isToday = day === 17;
-            const isFuture= day > 17;
-            const barH    = spend ? Math.max(2, Math.round((spend / maxSpend) * 12)) : 0;
-            return (
-              <div key={day} onClick={() => !isFuture && setSel(day)}
-                style={{ flex:'0 0 calc(100%/7)', height:58, display:'flex', flexDirection:'column',
-                  alignItems:'center', justifyContent:'flex-start', paddingTop:4,
-                  cursor: isFuture ? 'default' : 'pointer' }}>
-                <div style={{ width:34, height:34, borderRadius:'50%',
-                  background: isSel ? C.accent : 'transparent',
-                  border: isToday && !isSel ? `1.5px solid ${C.accent}` : 'none',
-                  display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  <span style={{ fontFamily:'Inter', fontSize:14, letterSpacing:'-0.01em',
-                    fontWeight: isSel||isToday ? 700 : 400,
-                    color: isSel ? '#fff' : isFuture ? C.faint : C.dark }}>
-                    {day}
-                  </span>
-                </div>
-                {spend > 0 && (
-                  <span style={{ fontFamily:'Inter', fontSize:9, fontWeight:500, marginTop:2,
-                    color: isSel ? C.accent : C.muted }}>
-                    ${spend < 100 ? spend.toFixed(0) : Math.round(spend)}
-                  </span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Confirm */}
-        <div style={{ padding:'12px 24px 0' }}>
-          <CTAButton label={`Confirm — Mar ${sel}`} onClick={confirm} />
-        </div>
-      </div>
-    </>
-  );
-}
-
-/* ─── Shared UI ─────────────────────────────────────── */
-const C = {
-  bg: '#F5F3EF', dark: '#1C1B19', muted: '#8A8680',
-  accent: '#FF4422', surface: '#FFFFFF', border: '#E9E5DF',
-  light: '#ECEAE5', faint: '#C2BEBA', green: '#2BA97A',
+/* Expenses per day */
+const DAY_EXPENSES = {
+  3:  [{ id:'e2', merchant:'Whole Foods',  amount:45.20, cat:'Shopping',  type:'personal' }],
+  5:  [{ id:'e3', merchant:'Gym Monthly',  amount:67.80, cat:'Health',    type:'personal' }],
+  6:  [{ id:'e4', merchant:'Uber',         amount:89.00, cat:'Transport', type:'personal' }],
+  7:  [{ id:'e5', merchant:'Zara',         amount:34.50, cat:'Shopping',  type:'personal' }],
+  10: [{ id:'e6', merchant:'Spotify',      amount:9.99,  cat:'Bills',     type:'personal' },
+       { id:'e7', merchant:'Lunch w/ team',amount:46.41, cat:'Food',      type:'split', people:3 }],
+  13: [{ id:'e8', merchant:'Farmers Mkt',  amount:78.50, cat:'Food',      type:'personal' }],
+  14: [{ id:'e9', merchant:'Cinema',       amount:22.00, cat:'Fun',       type:'personal' }],
+  17: [{ id:'e1', merchant:'Tartine Bakery',amount:84.50,cat:'Food',      type:'eating-out', people:4, status:'collecting' }],
 };
 
-function NavBar({ title, onBack, right }) {
-  return (
-    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
-      padding:'52px 24px 16px' }}>
-      <button onClick={onBack} style={{ width:36, height:36, borderRadius:'50%',
-        background:C.light, border:'none', cursor:'pointer', display:'flex',
-        alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-          <path d="M10 3L5 8L10 13" stroke={C.dark} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      </button>
-      <span style={{ fontFamily:'Inter', fontWeight:600, fontSize:15, color:C.dark,
-        letterSpacing:'-0.01em' }}>{title}</span>
-      <div style={{ width:36, height:36, display:'flex', alignItems:'center', justifyContent:'center' }}>
-        {right}
-      </div>
-    </div>
-  );
-}
+const CAT_COLORS = { Food:'#FF4422', Shopping:'#5B7FFF', Transport:'#2BA97A', Health:'#E6A817', Bills:'#9B6EFF', Fun:'#FF8C42', default:'#8A8680' };
 
-function Avatar({ name, color, size = 32 }) {
+const fmt = n => `$${n.toFixed(2)}`;
+const C = {
+  bg:'#F5F3EF', dark:'#1C1B19', muted:'#8A8680',
+  accent:'#FF4422', surface:'#FFFFFF', border:'#E9E5DF',
+  light:'#ECEAE5', faint:'#C2BEBA', green:'#2BA97A',
+};
+
+/* ═══════════════════════════════════════════════════
+   SHARED UI
+═══════════════════════════════════════════════════ */
+function Avatar({ name, color, size=32 }) {
   return (
     <div style={{ width:size, height:size, borderRadius:'50%', background:color,
       display:'flex', alignItems:'center', justifyContent:'center',
-      fontFamily:'Inter', fontWeight:700, fontSize:size*0.38, color:'#fff',
-      flexShrink:0, letterSpacing:'-0.02em' }}>
+      fontFamily:'Inter', fontWeight:700, fontSize:size*.38, color:'#fff', flexShrink:0 }}>
       {name[0]}
     </div>
   );
 }
 
-function CTAButton({ label, onClick, disabled }) {
+function NavBar({ title, onBack, right }) {
+  return (
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'52px 24px 16px' }}>
+      <button onClick={onBack} style={{ width:36, height:36, borderRadius:'50%',
+        background:C.light, border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M10 3L5 8L10 13" stroke={C.dark} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+      <span style={{ fontFamily:'Inter', fontWeight:600, fontSize:15, color:C.dark, letterSpacing:'-0.01em' }}>{title}</span>
+      <div style={{ width:36, height:36, display:'flex', alignItems:'center', justifyContent:'center' }}>{right}</div>
+    </div>
+  );
+}
+
+function CTAButton({ label, onClick, disabled, secondary }) {
   return (
     <button onClick={onClick} disabled={disabled} style={{
-      width:'100%', background: disabled ? C.light : C.accent,
+      width:'100%', background: secondary ? C.light : disabled ? C.light : C.accent,
       border:'none', borderRadius:16, padding:'18px',
       display:'flex', alignItems:'center', justifyContent:'center', gap:8,
-      cursor: disabled ? 'default' : 'pointer', transition:'background 0.2s' }}>
+      cursor: disabled ? 'default' : 'pointer', transition:'background .2s' }}>
       <span style={{ fontFamily:'Inter', fontWeight:700, fontSize:16,
-        color: disabled ? C.muted : '#fff', letterSpacing:'-0.01em' }}>{label}</span>
-      {!disabled && <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        color: secondary ? C.dark : disabled ? C.muted : '#fff', letterSpacing:'-0.01em' }}>{label}</span>
+      {!disabled && !secondary && <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
         <path d="M3 8h10M9 4l4 4-4 4" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>}
     </button>
   );
 }
 
-/* ─── Screen 0: Expense Entry ───────────────────────── */
-function S0_ExpenseEntry({ go }) {
+/* Calendar sheet (date picker) */
+function CalendarSheet({ selectedDay, onSelect, onClose }) {
+  const [sel, setSel] = React.useState(selectedDay);
+  const max = Math.max(...Object.values(DAILY_SPEND));
+  return (
+    <>
+      <div onClick={onClose} style={{ position:'absolute', inset:0, background:'rgba(28,27,25,.45)', zIndex:200 }}/>
+      <div style={{ position:'absolute', bottom:0, left:0, right:0, background:'#fff',
+        borderRadius:'24px 24px 0 0', zIndex:201, paddingBottom:36,
+        animation:'slideUp .28s cubic-bezier(.4,0,.2,1)' }}>
+        <div style={{ width:36, height:4, borderRadius:2, background:C.border, margin:'12px auto 0' }}/>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 24px 16px' }}>
+          <span style={{ fontFamily:'Inter', fontWeight:700, fontSize:18, color:C.dark, letterSpacing:'-0.02em' }}>March 2026</span>
+          <div style={{ display:'flex', gap:4 }}>
+            {['‹','›'].map((ch,i) => (
+              <div key={i} style={{ width:32, height:32, borderRadius:10, background:C.light,
+                display:'flex', alignItems:'center', justifyContent:'center',
+                fontFamily:'Inter', fontSize:18, color:C.muted, cursor:'pointer', userSelect:'none' }}>{ch}</div>
+            ))}
+          </div>
+        </div>
+        <div style={{ display:'flex', paddingInline:16, marginBottom:4 }}>
+          {DAY_HDR.map(d => (
+            <div key={d} style={{ flex:1, textAlign:'center', fontFamily:'Inter',
+              fontWeight:500, fontSize:11, color:C.faint, letterSpacing:'0.05em' }}>{d}</div>
+          ))}
+        </div>
+        <div style={{ display:'flex', flexWrap:'wrap', paddingInline:16 }}>
+          {MARCH_GRID.map((day,i) => {
+            if (!day) return <div key={`e${i}`} style={{ flex:'0 0 calc(100%/7)', height:56 }}/>;
+            const spend=DAILY_SPEND[day]||0, isSel=day===sel, isToday=day===17, isFuture=day>17;
+            return (
+              <div key={day} onClick={() => !isFuture && setSel(day)}
+                style={{ flex:'0 0 calc(100%/7)', height:56, display:'flex', flexDirection:'column',
+                  alignItems:'center', justifyContent:'flex-start', paddingTop:4, cursor:isFuture?'default':'pointer' }}>
+                <div style={{ width:34, height:34, borderRadius:'50%',
+                  background:isSel?C.accent:'transparent',
+                  border:isToday&&!isSel?`1.5px solid ${C.accent}`:'none',
+                  display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  <span style={{ fontFamily:'Inter', fontSize:14, letterSpacing:'-0.01em',
+                    fontWeight:isSel||isToday?700:400,
+                    color:isSel?'#fff':isFuture?C.faint:C.dark }}>{day}</span>
+                </div>
+                {spend>0 && <span style={{ fontFamily:'Inter', fontSize:9, fontWeight:500, marginTop:1,
+                  color:isSel?C.accent:C.muted }}>${spend<100?spend.toFixed(0):Math.round(spend)}</span>}
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ padding:'12px 24px 0' }}>
+          <CTAButton label={`Confirm — Mar ${sel}`} onClick={() => { onSelect(sel); onClose(); }}/>
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   SPLASH SCREEN
+═══════════════════════════════════════════════════ */
+function SplashScreen({ onDone }) {
+  const [phase, setPhase] = React.useState('in'); // 'in' | 'hold' | 'out'
+
+  React.useEffect(() => {
+    const t1 = setTimeout(() => setPhase('out'), 1800);
+    const t2 = setTimeout(onDone, 2300);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, []);
+
+  return (
+    <div style={{ position:'absolute', inset:0, background:C.dark, display:'flex',
+      flexDirection:'column', alignItems:'center', justifyContent:'center', gap:20,
+      opacity: phase==='out' ? 0 : 1, transition:'opacity .5s ease', zIndex:999 }}>
+
+      {/* Logo mark */}
+      <div style={{ animation:'pop .6s cubic-bezier(.34,1.56,.64,1) .2s both' }}>
+        <div style={{ width:72, height:72, borderRadius:22, background:C.accent,
+          display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+            <circle cx="18" cy="10" r="4" fill="white"/>
+            <circle cx="18" cy="26" r="4" fill="white"/>
+            <line x1="8" y1="18" x2="28" y2="18" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+          </svg>
+        </div>
+      </div>
+
+      {/* Wordmark */}
+      <div style={{ animation:'fadeUp .5s ease .5s both', textAlign:'center' }}>
+        <div style={{ fontFamily:'Inter', fontWeight:800, fontSize:32, color:'#fff',
+          letterSpacing:'-0.04em', lineHeight:1 }}>split.</div>
+        <div style={{ fontFamily:'Inter', fontWeight:400, fontSize:14, color:'rgba(255,255,255,.4)',
+          marginTop:8, letterSpacing:'0.01em' }}>smarter expenses</div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   HOME SCREEN
+═══════════════════════════════════════════════════ */
+function S_Home({ go, goDay }) {
+  const totalMonth = Object.values(DAILY_SPEND).reduce((s,v)=>s+v, 0);
+  const maxSpend   = Math.max(...Object.values(DAILY_SPEND));
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', height:'100%', background:C.bg }}>
+
+      {/* Header */}
+      <div style={{ padding:'52px 28px 20px', display:'flex', alignItems:'flex-start', justifyContent:'space-between' }}>
+        <div>
+          <div style={{ fontFamily:'Inter', fontWeight:800, fontSize:28, color:C.dark, letterSpacing:'-0.03em' }}>
+            March 2026
+          </div>
+          <div style={{ fontFamily:'Inter', fontSize:13, color:C.muted, marginTop:4 }}>
+            {fmt(totalMonth)} spent this month
+          </div>
+        </div>
+        <button onClick={() => go(2)} style={{ width:40, height:40, borderRadius:12, background:C.accent,
+          border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path d="M9 3v12M3 9h12" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
+          </svg>
+        </button>
+      </div>
+
+      {/* Calendar */}
+      <div style={{ paddingInline:20, flex:1, display:'flex', flexDirection:'column' }}>
+
+        {/* Day headers */}
+        <div style={{ display:'flex', marginBottom:6 }}>
+          {DAY_HDR.map(d => (
+            <div key={d} style={{ flex:1, textAlign:'center', fontFamily:'Inter',
+              fontWeight:500, fontSize:11, color:C.faint, letterSpacing:'0.05em', paddingBottom:4 }}>{d}</div>
+          ))}
+        </div>
+
+        {/* Grid */}
+        <div style={{ display:'flex', flexWrap:'wrap' }}>
+          {MARCH_GRID.map((day, i) => {
+            if (!day) return <div key={`e${i}`} style={{ flex:'0 0 calc(100%/7)', height:68 }}/>;
+            const spend   = DAILY_SPEND[day]||0;
+            const isToday = day===17;
+            const isFuture= day>17;
+            const hasExp  = !!DAY_EXPENSES[day];
+            const intensity = spend ? spend/maxSpend : 0;
+            const barH    = spend ? Math.max(3, Math.round(intensity*20)) : 0;
+
+            return (
+              <div key={day} onClick={() => hasExp && goDay(day)}
+                style={{ flex:'0 0 calc(100%/7)', height:68, display:'flex', flexDirection:'column',
+                  alignItems:'center', paddingTop:6,
+                  cursor: hasExp ? 'pointer' : 'default' }}>
+                {/* Date circle */}
+                <div style={{ width:36, height:36, borderRadius:'50%',
+                  background: isToday ? C.dark : 'transparent',
+                  border: !isToday && hasExp ? `1.5px solid ${C.border}` : 'none',
+                  display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  <span style={{ fontFamily:'Inter', fontSize:14, letterSpacing:'-0.01em',
+                    fontWeight: isToday ? 700 : hasExp ? 600 : 400,
+                    color: isToday ? '#fff' : isFuture ? C.faint : C.dark }}>
+                    {day}
+                  </span>
+                </div>
+                {/* Spend bar */}
+                {spend>0 && (
+                  <div style={{ width:28, height:4, borderRadius:2, marginTop:4,
+                    background: isToday ? C.accent : `rgba(255,68,34,${0.2 + intensity*0.7})` }}/>
+                )}
+                {spend>0 && (
+                  <div style={{ fontFamily:'Inter', fontSize:9, fontWeight:500, marginTop:2,
+                    color: isToday ? C.accent : C.muted }}>
+                    ${spend<100?spend.toFixed(0):Math.round(spend)}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Recent */}
+      <div style={{ padding:'16px 28px 0', borderTop:`1px solid ${C.border}` }}>
+        <div style={{ fontFamily:'Inter', fontWeight:500, fontSize:11, color:C.muted,
+          letterSpacing:'0.07em', textTransform:'uppercase', marginBottom:12 }}>Recent</div>
+        {[17,14,13].map(day => {
+          const exps = DAY_EXPENSES[day]||[];
+          return exps.map(e => (
+            <div key={e.id} onClick={() => goDay(day)}
+              style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 0',
+                borderBottom:`1px solid ${C.border}`, cursor:'pointer' }}>
+              <div style={{ width:36, height:36, borderRadius:10, flexShrink:0,
+                background: (CAT_COLORS[e.cat]||CAT_COLORS.default)+'22',
+                display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <div style={{ width:10, height:10, borderRadius:'50%', background: CAT_COLORS[e.cat]||CAT_COLORS.default }}/>
+              </div>
+              <div style={{ flex:1 }}>
+                <div style={{ fontFamily:'Inter', fontWeight:500, fontSize:14, color:C.dark, letterSpacing:'-0.01em' }}>{e.merchant}</div>
+                <div style={{ fontFamily:'Inter', fontSize:12, color:C.muted, marginTop:1 }}>
+                  Mar {day}{e.type!=='personal'?` · ${e.type==='eating-out'?`${e.people} people`:`Split`}`:''}
+                </div>
+              </div>
+              <span style={{ fontFamily:'Inter', fontWeight:600, fontSize:15, color:C.dark, letterSpacing:'-0.02em' }}>{fmt(e.amount)}</span>
+            </div>
+          ));
+        })}
+      </div>
+
+      <div style={{ height:60 }}/>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   DAY DETAIL SCREEN
+═══════════════════════════════════════════════════ */
+function S_DayDetail({ day, back, goPayments }) {
+  const exps    = DAY_EXPENSES[day] || [];
+  const total   = exps.reduce((s,e)=>s+e.amount, 0);
+  const weekday = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  // March 1 2026 = Sunday (0), so day d → (0 + d - 1) % 7 + correction
+  // March 1 = Sunday = 0, March 17 = (0+16)%7 = 2 = Tue
+  const wday    = weekday[(0 + day - 1) % 7];
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', height:'100%', background:C.bg }}>
+      <NavBar title={`${wday}, Mar ${day}`} onBack={back} />
+
+      <div style={{ padding:'4px 28px 24px', display:'flex', alignItems:'baseline', gap:8 }}>
+        <span style={{ fontFamily:'Inter', fontWeight:800, fontSize:36, color:C.dark, letterSpacing:'-0.04em' }}>{fmt(total)}</span>
+        <span style={{ fontFamily:'Inter', fontSize:13, color:C.muted }}>· {exps.length} expense{exps.length!==1?'s':''}</span>
+      </div>
+
+      <div style={{ flex:1, overflowY:'auto', paddingInline:28, display:'flex', flexDirection:'column', gap:12 }}>
+        {exps.map(e => (
+          <div key={e.id} style={{ background:'#fff', borderRadius:16, padding:'16px',
+            border:`1px solid ${C.border}` }}>
+            <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom: e.type!=='personal' ? 12 : 0 }}>
+              <div style={{ width:40, height:40, borderRadius:12, flexShrink:0,
+                background:(CAT_COLORS[e.cat]||CAT_COLORS.default)+'18',
+                display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <div style={{ width:12, height:12, borderRadius:'50%', background:CAT_COLORS[e.cat]||CAT_COLORS.default }}/>
+              </div>
+              <div style={{ flex:1 }}>
+                <div style={{ fontFamily:'Inter', fontWeight:600, fontSize:15, color:C.dark, letterSpacing:'-0.01em' }}>{e.merchant}</div>
+                <div style={{ fontFamily:'Inter', fontSize:12, color:C.muted, marginTop:1 }}>{e.cat}</div>
+              </div>
+              <span style={{ fontFamily:'Inter', fontWeight:700, fontSize:17, color:C.dark, letterSpacing:'-0.02em' }}>{fmt(e.amount)}</span>
+            </div>
+
+            {e.type === 'eating-out' && (
+              <>
+                <div style={{ height:1, background:C.border, marginBottom:12 }}/>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+                  <span style={{ fontFamily:'Inter', fontSize:12, color:C.muted }}>Split between {e.people} people</span>
+                  <div style={{ display:'flex' }}>
+                    {PEOPLE.map((p,i) => (
+                      <div key={p.name} style={{ marginLeft: i===0?0:-6 }}>
+                        <Avatar name={p.name} color={p.color} size={22}/>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                  <div style={{ width:8, height:8, borderRadius:'50%', background:'#E6A817' }}/>
+                  <span style={{ fontFamily:'Inter', fontSize:12, color:'#B88000', fontWeight:500 }}>Collecting payments</span>
+                </div>
+                <div style={{ marginTop:12 }}>
+                  <button onClick={goPayments} style={{ width:'100%', background:'#FFF0ED', border:`1px solid #FFD5CE`,
+                    borderRadius:10, padding:'10px', cursor:'pointer',
+                    fontFamily:'Inter', fontWeight:600, fontSize:13, color:C.accent }}>
+                    View payment status →
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   EXPENSE ENTRY (Screen 2)
+═══════════════════════════════════════════════════ */
+function S_ExpenseEntry({ go, back }) {
   const [splitOn,     setSplitOn]     = React.useState(false);
   const [merchant,    setMerchant]    = React.useState('Tartine Bakery');
   const [editingName, setEditingName] = React.useState(false);
   const [calOpen,     setCalOpen]     = React.useState(false);
   const [selectedDay, setSelectedDay] = React.useState(17);
-
-  const dateLabel = selectedDay === 17 ? `Today, Mar ${selectedDay}` : `Mar ${selectedDay}, 2026`;
+  const dateLabel = selectedDay===17 ? `Today, Mar ${selectedDay}` : `Mar ${selectedDay}, 2026`;
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', height:'100%', position:'relative' }}>
-      {/* Nav */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
-        padding:'52px 28px 16px' }}>
-        <div style={{ width:36, height:36, borderRadius:'50%', background:C.light,
-          display:'flex', alignItems:'center', justifyContent:'center' }}>
+    <div style={{ display:'flex', flexDirection:'column', height:'100%', background:C.bg, position:'relative' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'52px 28px 16px' }}>
+        <button onClick={back} style={{ width:36, height:36, borderRadius:'50%', background:C.light, border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M10 3L5 8L10 13" stroke={C.dark} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-        </div>
+        </button>
         <span style={{ fontFamily:'Inter', fontWeight:600, fontSize:15, color:C.dark, letterSpacing:'-0.01em' }}>New Expense</span>
-        <div style={{ width:36, height:36, borderRadius:'50%', background:C.light,
-          display:'flex', alignItems:'center', justifyContent:'center' }}>
+        <button onClick={back} style={{ width:36, height:36, borderRadius:'50%', background:C.light, border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M1 1L13 13M13 1L1 13" stroke={C.dark} strokeWidth="1.8" strokeLinecap="round"/>
           </svg>
-        </div>
+        </button>
       </div>
 
-      {/* Amount */}
-      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:10,
-        padding:'28px 28px 24px' }}>
+      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:10, padding:'28px 28px 24px' }}>
         <span style={{ fontFamily:'Inter', fontSize:13, color:C.muted, letterSpacing:'0.08em', textTransform:'uppercase' }}>Amount</span>
         <div style={{ display:'flex', alignItems:'flex-start', gap:4 }}>
           <span style={{ fontFamily:'Inter', fontWeight:300, fontSize:28, color:C.muted, paddingTop:10 }}>$</span>
@@ -283,46 +479,33 @@ function S0_ExpenseEntry({ go }) {
         </div>
       </div>
 
-      {/* Pills */}
       <div style={{ display:'flex', gap:8, padding:'0 28px 24px', overflow:'hidden' }}>
         {[['Food',true],['Shopping',false],['Transport',false],['Other',false]].map(([l,a]) => (
           <div key={l} style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 16px',
-            borderRadius:100, background: a ? C.dark : C.light, flexShrink:0, cursor:'pointer' }}>
-            <span style={{ fontFamily:'Inter', fontWeight:500, fontSize:13,
-              color: a ? '#F5F3EF' : C.muted, whiteSpace:'nowrap' }}>{l}</span>
+            borderRadius:100, background:a?C.dark:C.light, flexShrink:0, cursor:'pointer' }}>
+            <span style={{ fontFamily:'Inter', fontWeight:500, fontSize:13, color:a?'#F5F3EF':C.muted, whiteSpace:'nowrap' }}>{l}</span>
           </div>
         ))}
       </div>
 
-      {/* Fields */}
       <div style={{ display:'flex', flexDirection:'column', paddingInline:28 }}>
-
         {/* Merchant — editable */}
         <div style={{ borderBottom:`1px solid ${C.border}`, display:'flex', flexDirection:'column', gap:5, padding:'14px 0' }}>
           <span style={{ fontFamily:'Inter', fontWeight:500, fontSize:11, color:C.muted, letterSpacing:'0.07em', textTransform:'uppercase' }}>Merchant</span>
-          {editingName ? (
-            <input
-              autoFocus
-              value={merchant}
-              onChange={e => setMerchant(e.target.value)}
-              onBlur={() => setEditingName(false)}
-              onKeyDown={e => e.key === 'Enter' && setEditingName(false)}
-              style={{ fontFamily:'Inter', fontWeight:500, fontSize:17, color:C.dark,
-                letterSpacing:'-0.01em', border:'none', background:'transparent',
-                outline:'none', width:'100%', padding:0 }}
-            />
-          ) : (
-            <span onClick={() => setEditingName(true)}
-              style={{ fontFamily:'Inter', fontWeight:500, fontSize:17, color:C.dark,
-                letterSpacing:'-0.01em', cursor:'text', borderBottom:`1.5px solid ${C.accent}`,
-                display:'inline-block', paddingBottom:1 }}>
-              {merchant}
-            </span>
-          )}
+          {editingName
+            ? <input autoFocus value={merchant} onChange={e=>setMerchant(e.target.value)}
+                onBlur={()=>setEditingName(false)} onKeyDown={e=>e.key==='Enter'&&setEditingName(false)}
+                style={{ fontFamily:'Inter', fontWeight:500, fontSize:17, color:C.dark, letterSpacing:'-0.01em',
+                  border:'none', background:'transparent', width:'100%', padding:0 }}/>
+            : <span onClick={()=>setEditingName(true)}
+                style={{ fontFamily:'Inter', fontWeight:500, fontSize:17, color:C.dark, letterSpacing:'-0.01em',
+                  cursor:'text', borderBottom:`1.5px solid ${C.accent}`, display:'inline-block', paddingBottom:1 }}>
+                {merchant}
+              </span>
+          }
         </div>
-
-        {/* Date — opens calendar */}
-        <div onClick={() => setCalOpen(true)}
+        {/* Date */}
+        <div onClick={()=>setCalOpen(true)}
           style={{ borderBottom:`1px solid ${C.border}`, display:'flex', flexDirection:'column', gap:5, padding:'14px 0', cursor:'pointer' }}>
           <span style={{ fontFamily:'Inter', fontWeight:500, fontSize:11, color:C.muted, letterSpacing:'0.07em', textTransform:'uppercase' }}>Date</span>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
@@ -333,23 +516,12 @@ function S0_ExpenseEntry({ go }) {
             </svg>
           </div>
         </div>
-
         {/* Notes */}
         <div style={{ borderBottom:`1px solid ${C.border}`, display:'flex', flexDirection:'column', gap:5, padding:'14px 0' }}>
           <span style={{ fontFamily:'Inter', fontWeight:500, fontSize:11, color:C.muted, letterSpacing:'0.07em', textTransform:'uppercase' }}>Notes</span>
           <span style={{ fontFamily:'Inter', fontSize:17, color:C.faint, letterSpacing:'-0.01em' }}>Add a note…</span>
         </div>
-
       </div>
-
-      {/* Calendar bottom sheet */}
-      {calOpen && (
-        <CalendarSheet
-          selectedDay={selectedDay}
-          onSelect={setSelectedDay}
-          onClose={() => setCalOpen(false)}
-        />
-      )}
 
       {/* Split toggle */}
       <div style={{ borderBottom:`1px solid ${C.border}`, display:'flex', flexDirection:'column' }}>
@@ -358,21 +530,14 @@ function S0_ExpenseEntry({ go }) {
             <span style={{ fontFamily:'Inter', fontWeight:500, fontSize:15, color:C.dark, letterSpacing:'-0.01em' }}>Split with others</span>
             <span style={{ fontFamily:'Inter', fontSize:13, color:C.muted }}>Divide this expense</span>
           </div>
-          <div onClick={() => setSplitOn(v => !v)} style={{
-            width:44, height:26, borderRadius:100, position:'relative', cursor:'pointer',
-            background: splitOn ? C.accent : C.border, transition:'background 0.25s' }}>
-            <div style={{ width:20, height:20, background:'#fff', borderRadius:'50%',
-              position:'absolute', top:3, transition:'left 0.25s',
-              left: splitOn ? 21 : 3 }} />
+          <div onClick={()=>setSplitOn(v=>!v)} style={{ width:44, height:26, borderRadius:100, position:'relative', cursor:'pointer',
+            background:splitOn?C.accent:C.border, transition:'background .25s' }}>
+            <div style={{ width:20, height:20, background:'#fff', borderRadius:'50%', position:'absolute', top:3, transition:'left .25s', left:splitOn?21:3 }}/>
           </div>
         </div>
-
-        {/* Eating Out option — slides in when split is ON */}
         {splitOn && (
-          <div onClick={() => go(1)} style={{ display:'flex', alignItems:'center', gap:12,
-            padding:'14px 28px 18px', cursor:'pointer', animation:'fadeSlide 0.2s ease' }}>
-            <div style={{ width:40, height:40, borderRadius:12, background:'#FFF0ED',
-              display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+          <div onClick={()=>go(3)} style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 28px 18px', cursor:'pointer', animation:'fadeSlide .2s ease' }}>
+            <div style={{ width:40, height:40, borderRadius:12, background:'#FFF0ED', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                 <path d="M4 3h12v2a6 6 0 01-12 0V3z" stroke={C.accent} strokeWidth="1.5" strokeLinejoin="round"/>
                 <path d="M10 9v8M7 17h6" stroke={C.accent} strokeWidth="1.5" strokeLinecap="round"/>
@@ -389,59 +554,54 @@ function S0_ExpenseEntry({ go }) {
         )}
       </div>
 
-      {/* CTA */}
       <div style={{ padding:'20px 28px 40px', marginTop:'auto' }}>
-        <CTAButton label="Save Expense" onClick={() => {}} />
+        <CTAButton label="Save Expense" onClick={back}/>
       </div>
+
+      {calOpen && <CalendarSheet selectedDay={selectedDay} onSelect={setSelectedDay} onClose={()=>setCalOpen(false)}/>}
     </div>
   );
 }
 
-/* ─── Screen 1: Capture Bill ────────────────────────── */
-function S1_CaptureBill({ go, back }) {
+/* ═══════════════════════════════════════════════════
+   CAPTURE BILL (Screen 3)
+═══════════════════════════════════════════════════ */
+function S_CaptureBill({ go, back }) {
   const [captured, setCaptured] = React.useState(false);
   return (
-    <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
-      <NavBar title="Scan Bill" onBack={back} />
-
+    <div style={{ display:'flex', flexDirection:'column', height:'100%', background:C.bg }}>
+      <NavBar title="Scan Bill" onBack={back}/>
       <div style={{ padding:'8px 28px 20px' }}>
         <p style={{ fontFamily:'Inter', fontSize:14, color:C.muted, lineHeight:'20px' }}>
-          {captured ? 'Looking good? We\'ll extract the items.' : 'Point your camera at the full receipt.'}
+          {captured ? "Looking good? We'll extract the items." : 'Point your camera at the full receipt.'}
         </p>
       </div>
-
-      {/* Viewfinder / Captured preview */}
       <div style={{ margin:'0 28px', flex:1, borderRadius:20, overflow:'hidden',
-        background: captured ? '#1a1a17' : '#0f0f0e', position:'relative',
+        background:captured?'#1a1a17':'#0f0f0e', position:'relative',
         display:'flex', alignItems:'center', justifyContent:'center', maxHeight:420 }}>
-
         {!captured ? (
           <>
-            {/* Corner guides */}
-            {[['0%','0%','right','bottom'],['100%','0%','left','bottom'],
-              ['0%','100%','right','top'],['100%','100%','left','top']].map(([l,t,br,bb], i) => (
-              <div key={i} style={{ position:'absolute', left:l, top:t, width:28, height:28,
-                borderRight: br==='right' ? 'none' : `2px solid rgba(255,68,34,0.7)`,
-                borderLeft:  br==='right' ? `2px solid rgba(255,68,34,0.7)` : 'none',
-                borderBottom: bb==='bottom' ? 'none' : `2px solid rgba(255,68,34,0.7)`,
-                borderTop:    bb==='bottom' ? `2px solid rgba(255,68,34,0.7)` : 'none',
-                margin:16, borderRadius:2 }} />
+            {[['0%','0%','right','bottom'],['100%','0%','left','bottom'],['0%','100%','right','top'],['100%','100%','left','top']].map(([l,t,br,bb],i) => (
+              <div key={i} style={{ position:'absolute', left:l, top:t, width:28, height:28, margin:16, borderRadius:2,
+                borderRight:br==='right'?'none':`2px solid rgba(255,68,34,.7)`,
+                borderLeft:br==='right'?`2px solid rgba(255,68,34,.7)`:'none',
+                borderBottom:bb==='bottom'?'none':`2px solid rgba(255,68,34,.7)`,
+                borderTop:bb==='bottom'?`2px solid rgba(255,68,34,.7)`:'none' }}/>
             ))}
-            <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:12, opacity:0.4 }}>
+            <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:12, opacity:.4 }}>
               <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
                 <rect x="8" y="12" width="32" height="26" rx="4" stroke="white" strokeWidth="2"/>
                 <circle cx="24" cy="25" r="8" stroke="white" strokeWidth="2"/>
-                <circle cx="24" cy="25" r="3" fill="white" opacity="0.4"/>
+                <circle cx="24" cy="25" r="3" fill="white" opacity=".4"/>
                 <path d="M18 12V9a2 2 0 012-2h8a2 2 0 012 2v3" stroke="white" strokeWidth="2"/>
               </svg>
               <span style={{ fontFamily:'Inter', fontSize:13, color:'white' }}>Position receipt here</span>
             </div>
           </>
         ) : (
-          /* Simulated captured receipt */
           <div style={{ width:'75%', background:'#fefef8', borderRadius:8, padding:'18px 16px',
-            display:'flex', flexDirection:'column', gap:6, boxShadow:'0 8px 32px rgba(0,0,0,0.4)' }}>
-            <div style={{ fontFamily:'Inter', fontWeight:700, fontSize:11, textAlign:'center', color:'#222', letterSpacing:'0.1em', marginBottom:4 }}>TARTINE BAKERY</div>
+            display:'flex', flexDirection:'column', gap:6, boxShadow:'0 8px 32px rgba(0,0,0,.4)' }}>
+            <div style={{ fontFamily:'Inter', fontWeight:700, fontSize:11, textAlign:'center', color:'#222', letterSpacing:'.1em', marginBottom:4 }}>TARTINE BAKERY</div>
             <div style={{ height:1, background:'#ddd', margin:'4px 0' }}/>
             {[['Croque Monsieur x2','22.00'],['Caesar Salad','14.50'],['Flat White x2','12.00'],['Croissant x3','18.00'],['Sparkling Water','6.00']].map(([n,p]) => (
               <div key={n} style={{ display:'flex', justifyContent:'space-between' }}>
@@ -457,452 +617,467 @@ function S1_CaptureBill({ go, back }) {
           </div>
         )}
       </div>
-
       <div style={{ padding:'20px 28px 40px', display:'flex', flexDirection:'column', gap:12 }}>
-        {!captured ? (
-          <>
-            <CTAButton label="Take Photo" onClick={() => setCaptured(true)} />
-            <button onClick={() => setCaptured(true)} style={{ background:'none', border:'none', cursor:'pointer',
-              fontFamily:'Inter', fontWeight:500, fontSize:14, color:C.muted, padding:'8px', textAlign:'center' }}>
-              Upload from Library
-            </button>
-          </>
-        ) : (
-          <>
-            <CTAButton label="Use this photo" onClick={() => go(2)} />
-            <button onClick={() => setCaptured(false)} style={{ background:'none', border:'none', cursor:'pointer',
-              fontFamily:'Inter', fontWeight:500, fontSize:14, color:C.muted, padding:'8px', textAlign:'center' }}>
-              Retake
-            </button>
-          </>
-        )}
+        {!captured
+          ? <><CTAButton label="Take Photo" onClick={()=>setCaptured(true)}/>
+              <button onClick={()=>setCaptured(true)} style={{ background:'none', border:'none', cursor:'pointer', fontFamily:'Inter', fontWeight:500, fontSize:14, color:C.muted, padding:'8px', textAlign:'center' }}>Upload from Library</button></>
+          : <><CTAButton label="Use this photo" onClick={()=>go(4)}/>
+              <button onClick={()=>setCaptured(false)} style={{ background:'none', border:'none', cursor:'pointer', fontFamily:'Inter', fontWeight:500, fontSize:14, color:C.muted, padding:'8px', textAlign:'center' }}>Retake</button></>
+        }
       </div>
     </div>
   );
 }
 
-/* ─── Screen 2: Review Items ────────────────────────── */
-function S2_ReviewItems({ go, back }) {
-  const [items, setItems] = React.useState(ITEMS);
-  const subtotal = items.reduce((s,i) => s + i.price, 0);
+/* ═══════════════════════════════════════════════════
+   REVIEW ITEMS (Screen 4)
+═══════════════════════════════════════════════════ */
+function S_ReviewItems({ go, back }) {
   return (
-    <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
+    <div style={{ display:'flex', flexDirection:'column', height:'100%', background:C.bg }}>
       <NavBar title="Review Items" onBack={back}
-        right={
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <path d="M13 3l2 2-9 9-3 1 1-3 9-9z" stroke={C.muted} strokeWidth="1.5" strokeLinejoin="round"/>
-          </svg>
-        }
-      />
-
-      {/* Summary bar */}
+        right={<svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <path d="M13 3l2 2-9 9-3 1 1-3 9-9z" stroke={C.muted} strokeWidth="1.5" strokeLinejoin="round"/>
+        </svg>}/>
       <div style={{ display:'flex', alignItems:'baseline', gap:8, padding:'4px 28px 20px' }}>
         <span style={{ fontFamily:'Inter', fontWeight:800, fontSize:36, color:C.dark, letterSpacing:'-0.04em' }}>{fmt(TOTAL)}</span>
-        <span style={{ fontFamily:'Inter', fontSize:13, color:C.muted }}>· {items.length} items found</span>
+        <span style={{ fontFamily:'Inter', fontSize:13, color:C.muted }}>· {ITEMS.length} items found</span>
       </div>
-
-      {/* Items list */}
-      <div style={{ flex:1, overflowY:'auto', paddingInline:28, display:'flex', flexDirection:'column' }}>
-        {items.map((item, idx) => (
-          <div key={item.id} style={{ display:'flex', alignItems:'center', gap:12,
-            padding:'14px 0', borderBottom: idx < items.length-1 ? `1px solid ${C.border}` : 'none' }}>
-            <div style={{ width:36, height:36, borderRadius:10, background:C.light,
-              display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
-              fontFamily:'Inter', fontWeight:600, fontSize:11, color:C.muted }}>
-              ×{item.qty}
-            </div>
+      <div style={{ flex:1, overflowY:'auto', paddingInline:28 }}>
+        {ITEMS.map((item,idx) => (
+          <div key={item.id} style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 0',
+            borderBottom:idx<ITEMS.length-1?`1px solid ${C.border}`:'none' }}>
+            <div style={{ width:36, height:36, borderRadius:10, background:C.light, display:'flex',
+              alignItems:'center', justifyContent:'center', flexShrink:0,
+              fontFamily:'Inter', fontWeight:600, fontSize:11, color:C.muted }}>×{item.qty}</div>
             <div style={{ flex:1 }}>
               <div style={{ fontFamily:'Inter', fontWeight:500, fontSize:15, color:C.dark, letterSpacing:'-0.01em' }}>{item.name}</div>
-              <div style={{ fontFamily:'Inter', fontSize:12, color:C.muted, marginTop:2 }}>
-                {item.qty > 1 ? `${fmt(item.unit)} each` : ''}
-              </div>
+              {item.qty>1 && <div style={{ fontFamily:'Inter', fontSize:12, color:C.muted, marginTop:2 }}>{fmt(item.unit)} each</div>}
             </div>
             <span style={{ fontFamily:'Inter', fontWeight:600, fontSize:15, color:C.dark, letterSpacing:'-0.02em' }}>{fmt(item.price)}</span>
           </div>
         ))}
-
-        {/* Service + Tax */}
-        <div style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 0', borderTop:`1px solid ${C.border}` }}>
-          <div style={{ flex:1 }}>
-            <div style={{ fontFamily:'Inter', fontSize:13, color:C.muted }}>Service charge (10%)</div>
-          </div>
+        <div style={{ display:'flex', justifyContent:'space-between', padding:'14px 0', borderTop:`1px solid ${C.border}` }}>
+          <span style={{ fontFamily:'Inter', fontSize:13, color:C.muted }}>Service charge (10%)</span>
           <span style={{ fontFamily:'Inter', fontSize:13, color:C.muted }}>{fmt(SERVICE)}</span>
         </div>
-        <div style={{ display:'flex', alignItems:'center', gap:12, padding:'0 0 20px' }}>
-          <div style={{ flex:1 }}>
-            <div style={{ fontFamily:'Inter', fontSize:13, color:C.muted }}>Tax</div>
-          </div>
+        <div style={{ display:'flex', justifyContent:'space-between', padding:'0 0 20px' }}>
+          <span style={{ fontFamily:'Inter', fontSize:13, color:C.muted }}>Tax</span>
           <span style={{ fontFamily:'Inter', fontSize:13, color:C.muted }}>{fmt(TAX)}</span>
         </div>
       </div>
-
       <div style={{ padding:'16px 28px 40px', borderTop:`1px solid ${C.border}` }}>
-        <CTAButton label="Looks good" onClick={() => go(3)} />
+        <CTAButton label="Looks good" onClick={()=>go(5)}/>
       </div>
     </div>
   );
 }
 
-/* ─── Screen 3: Share Link ──────────────────────────── */
-function S3_ShareLink({ go, back }) {
+/* ═══════════════════════════════════════════════════
+   SHARE LINK (Screen 5)
+═══════════════════════════════════════════════════ */
+function S_ShareLink({ go, back }) {
   const [copied, setCopied] = React.useState(false);
-  const copy = () => { setCopied(true); setTimeout(() => setCopied(false), 2000); };
+  const copy = () => { setCopied(true); setTimeout(()=>setCopied(false),2000); };
   return (
-    <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
-      <NavBar title="Invite Group" onBack={back} />
-
+    <div style={{ display:'flex', flexDirection:'column', height:'100%', background:C.bg }}>
+      <NavBar title="Invite Group" onBack={back}/>
       <div style={{ padding:'4px 28px 24px' }}>
         <p style={{ fontFamily:'Inter', fontSize:14, color:C.muted, lineHeight:'20px' }}>
           Everyone picks what they ordered — then we calculate who owes what.
         </p>
       </div>
-
-      {/* Link card */}
-      <div style={{ margin:'0 28px', background:C.light, borderRadius:16,
-        padding:'16px', display:'flex', alignItems:'center', gap:12 }}>
+      <div style={{ margin:'0 28px', background:C.light, borderRadius:16, padding:'16px', display:'flex', alignItems:'center', gap:12 }}>
         <div style={{ flex:1, overflow:'hidden' }}>
-          <div style={{ fontFamily:'Inter', fontWeight:500, fontSize:11, color:C.muted,
-            letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:4 }}>Share link</div>
-          <div style={{ fontFamily:'Inter', fontSize:13, color:C.dark, overflow:'hidden',
-            textOverflow:'ellipsis', whiteSpace:'nowrap' }}>tartine.split.app/abc123</div>
+          <div style={{ fontFamily:'Inter', fontWeight:500, fontSize:11, color:C.muted, letterSpacing:'.06em', textTransform:'uppercase', marginBottom:4 }}>Share link</div>
+          <div style={{ fontFamily:'Inter', fontSize:13, color:C.dark, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>tartine.split.app/abc123</div>
         </div>
-        <button onClick={copy} style={{ flexShrink:0, background: copied ? C.green : C.dark,
-          border:'none', borderRadius:10, padding:'8px 14px', cursor:'pointer',
-          transition:'background 0.2s', display:'flex', alignItems:'center', gap:6 }}>
+        <button onClick={copy} style={{ flexShrink:0, background:copied?C.green:C.dark, border:'none', borderRadius:10, padding:'8px 14px', cursor:'pointer', transition:'background .2s', display:'flex', alignItems:'center', gap:6 }}>
           {copied
             ? <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7l4 4 6-7" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
             : <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="4" y="1" width="9" height="9" rx="1.5" stroke="white" strokeWidth="1.4"/><path d="M1 5v7a1 1 0 001 1h7" stroke="white" strokeWidth="1.4" strokeLinecap="round"/></svg>
           }
-          <span style={{ fontFamily:'Inter', fontWeight:600, fontSize:12, color:'white' }}>
-            {copied ? 'Copied' : 'Copy'}
-          </span>
+          <span style={{ fontFamily:'Inter', fontWeight:600, fontSize:12, color:'white' }}>{copied?'Copied':'Copy'}</span>
         </button>
       </div>
-
-      {/* People */}
       <div style={{ padding:'28px 28px 0' }}>
-        <div style={{ fontFamily:'Inter', fontWeight:500, fontSize:11, color:C.muted,
-          letterSpacing:'0.07em', textTransform:'uppercase', marginBottom:16 }}>
+        <div style={{ fontFamily:'Inter', fontWeight:500, fontSize:11, color:C.muted, letterSpacing:'.07em', textTransform:'uppercase', marginBottom:16 }}>
           Waiting for {PEOPLE.filter(p=>!p.confirmed).length} people
         </div>
-        <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
-          {PEOPLE.map((p, i) => (
-            <div key={p.name} style={{ display:'flex', alignItems:'center', gap:12,
-              padding:'12px 0', borderBottom: i < PEOPLE.length-1 ? `1px solid ${C.border}` : 'none' }}>
-              <Avatar name={p.name} color={p.color} size={36} />
-              <div style={{ flex:1 }}>
-                <div style={{ fontFamily:'Inter', fontWeight:500, fontSize:15, color:C.dark,
-                  letterSpacing:'-0.01em' }}>{p.name}</div>
-              </div>
-              {p.confirmed
-                ? <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-                    <div style={{ width:8, height:8, borderRadius:'50%', background:C.green }} />
-                    <span style={{ fontFamily:'Inter', fontSize:12, color:C.green, fontWeight:500 }}>Confirmed</span>
-                  </div>
-                : <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-                    <div style={{ width:8, height:8, borderRadius:'50%', background:C.faint }} />
-                    <span style={{ fontFamily:'Inter', fontSize:12, color:C.muted }}>Pending</span>
-                  </div>
-              }
+        {PEOPLE.map((p,i) => (
+          <div key={p.name} style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 0',
+            borderBottom:i<PEOPLE.length-1?`1px solid ${C.border}`:'none' }}>
+            <Avatar name={p.name} color={p.color} size={36}/>
+            <div style={{ flex:1 }}>
+              <div style={{ fontFamily:'Inter', fontWeight:500, fontSize:15, color:C.dark, letterSpacing:'-0.01em' }}>{p.name}</div>
             </div>
-          ))}
-        </div>
+            {p.confirmed
+              ? <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+                  <div style={{ width:8, height:8, borderRadius:'50%', background:C.green }}/>
+                  <span style={{ fontFamily:'Inter', fontSize:12, color:C.green, fontWeight:500 }}>Confirmed</span>
+                </div>
+              : <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+                  <div style={{ width:8, height:8, borderRadius:'50%', background:C.faint }}/>
+                  <span style={{ fontFamily:'Inter', fontSize:12, color:C.muted }}>Pending</span>
+                </div>
+            }
+          </div>
+        ))}
       </div>
-
       <div style={{ padding:'24px 28px 40px', marginTop:'auto' }}>
-        <CTAButton label="Preview guest view" onClick={() => go(4)} />
+        <CTAButton label="Preview guest view" onClick={()=>go(6)}/>
       </div>
     </div>
   );
 }
 
-/* ─── Screen 4: Guest Picks Items ───────────────────── */
-// Simulate: guest is "Priya". Other people's picks already known from PEOPLE.
-const OTHERS = PEOPLE.filter(p => p.name !== 'Priya');
+/* ═══════════════════════════════════════════════════
+   GUEST PICKS (Screen 6)
+═══════════════════════════════════════════════════ */
+const OTHERS = PEOPLE.filter(p=>p.name!=='Priya');
 
-function S4_GuestPicks({ go, back }) {
+function S_GuestPicks({ go, back }) {
   const [selected, setSelected] = React.useState(new Set());
-
-  const toggle = (id) => setSelected(prev => {
-    const s = new Set(prev);
-    s.has(id) ? s.delete(id) : s.add(id);
-    return s;
-  });
-
-  // How many others already picked this item
-  const otherCount = (id) => OTHERS.filter(p => p.items.includes(id)).length;
-
-  // Price this guest pays: item.price / (others + 1 if selected, else just show item.price)
-  const myShare = (item) => {
-    if (!selected.has(item.id)) return null;
-    return item.price / (otherCount(item.id) + 1);
-  };
-
-  const total = ITEMS.reduce((s, item) => {
-    const share = myShare(item);
-    return s + (share || 0);
-  }, 0);
+  const toggle = id => setSelected(prev => { const s=new Set(prev); s.has(id)?s.delete(id):s.add(id); return s; });
+  const otherCount = id => OTHERS.filter(p=>p.items.includes(id)).length;
+  const myShare    = item => selected.has(item.id) ? item.price/(otherCount(item.id)+1) : null;
+  const total      = ITEMS.reduce((s,item)=>s+(myShare(item)||0), 0);
 
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%', background:'#fff' }}>
-      {/* Guest header */}
       <div style={{ background:C.dark, padding:'52px 28px 24px', display:'flex', flexDirection:'column', gap:6 }}>
         <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:4 }}>
-          <Avatar name="T" color={C.accent} size={28} />
-          <span style={{ fontFamily:'Inter', fontSize:13, color:'rgba(255,255,255,0.5)' }}>Tartine Bakery · Mar 17</span>
+          <Avatar name="T" color={C.accent} size={28}/>
+          <span style={{ fontFamily:'Inter', fontSize:13, color:'rgba(255,255,255,.5)' }}>Tartine Bakery · Mar 17</span>
         </div>
         <h1 style={{ fontFamily:'Inter', fontWeight:800, fontSize:28, color:'#fff', letterSpacing:'-0.03em', lineHeight:'1.1' }}>
           What did<br/>you have?
         </h1>
-        <p style={{ fontFamily:'Inter', fontSize:13, color:'rgba(255,255,255,0.45)', marginTop:4 }}>
+        <p style={{ fontFamily:'Inter', fontSize:13, color:'rgba(255,255,255,.45)', marginTop:4 }}>
           Tap items you ordered — shared items split automatically
         </p>
       </div>
-
-      {/* Items */}
       <div style={{ flex:1, overflowY:'auto', paddingInline:28, background:'#fff' }}>
-        {ITEMS.map((item, idx) => {
-          const sel     = selected.has(item.id);
-          const others  = OTHERS.filter(p => p.items.includes(item.id));
-          const share   = myShare(item);
-          const splitBy = sel ? others.length + 1 : others.length;
-
+        {ITEMS.map((item,idx) => {
+          const sel    = selected.has(item.id);
+          const others = OTHERS.filter(p=>p.items.includes(item.id));
+          const share  = myShare(item);
+          const splitBy= sel ? others.length+1 : others.length;
           return (
-            <div key={item.id} onClick={() => toggle(item.id)}
+            <div key={item.id} onClick={()=>toggle(item.id)}
               style={{ display:'flex', alignItems:'flex-start', gap:12, padding:'16px 0',
-                borderBottom: idx < ITEMS.length-1 ? `1px solid ${C.border}` : 'none',
-                cursor:'pointer' }}>
-
-              {/* Checkbox */}
-              <div style={{ width:22, height:22, borderRadius:6, flexShrink:0, marginTop:2, transition:'all 0.15s',
-                background: sel ? C.accent : 'transparent',
-                border: sel ? 'none' : `1.5px solid ${C.border}`,
+                borderBottom:idx<ITEMS.length-1?`1px solid ${C.border}`:'none', cursor:'pointer' }}>
+              <div style={{ width:22, height:22, borderRadius:6, flexShrink:0, marginTop:2, transition:'all .15s',
+                background:sel?C.accent:'transparent', border:sel?'none':`1.5px solid ${C.border}`,
                 display:'flex', alignItems:'center', justifyContent:'center' }}>
                 {sel && <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                   <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>}
               </div>
-
-              {/* Name + sharing info */}
               <div style={{ flex:1 }}>
-                <div style={{ fontFamily:'Inter', fontWeight:500, fontSize:15, color:C.dark, letterSpacing:'-0.01em' }}>
-                  {item.name}
-                </div>
-                {others.length > 0 && (
+                <div style={{ fontFamily:'Inter', fontWeight:500, fontSize:15, color:C.dark, letterSpacing:'-0.01em' }}>{item.name}</div>
+                {others.length>0 && (
                   <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:5 }}>
                     <div style={{ display:'flex' }}>
-                      {others.map((p, i) => (
-                        <div key={p.name} style={{ marginLeft: i === 0 ? 0 : -6 }}>
-                          <Avatar name={p.name} color={p.color} size={18} />
+                      {others.map((p,i)=>(
+                        <div key={p.name} style={{ marginLeft:i===0?0:-6 }}>
+                          <Avatar name={p.name} color={p.color} size={18}/>
                         </div>
                       ))}
                     </div>
                     <span style={{ fontFamily:'Inter', fontSize:11, color:C.muted }}>
-                      {others.map(p => p.name).join(', ')} {others.length === 1 ? 'also had this' : 'also had this'}
-                      {sel ? ` — split ${splitBy} ways` : ''}
+                      {others.map(p=>p.name).join(', ')} also had this{sel?` · split ${splitBy} ways`:''}
                     </span>
                   </div>
                 )}
               </div>
-
-              {/* Price */}
               <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', flexShrink:0 }}>
-                {sel && others.length > 0 ? (
-                  <>
-                    <span style={{ fontFamily:'Inter', fontWeight:700, fontSize:15, color:C.accent, letterSpacing:'-0.02em' }}>
-                      {fmt(share)}
-                    </span>
-                    <span style={{ fontFamily:'Inter', fontSize:11, color:C.faint, textDecoration:'line-through', marginTop:1 }}>
-                      {fmt(item.price)}
-                    </span>
-                  </>
-                ) : (
-                  <span style={{ fontFamily:'Inter', fontWeight: sel?700:500, fontSize:15,
-                    color: sel ? C.accent : C.muted, letterSpacing:'-0.02em', transition:'all 0.15s' }}>
-                    {fmt(item.price)}
-                  </span>
-                )}
+                {sel&&others.length>0
+                  ? <>
+                      <span style={{ fontFamily:'Inter', fontWeight:700, fontSize:15, color:C.accent, letterSpacing:'-0.02em' }}>{fmt(share)}</span>
+                      <span style={{ fontFamily:'Inter', fontSize:11, color:C.faint, textDecoration:'line-through', marginTop:1 }}>{fmt(item.price)}</span>
+                    </>
+                  : <span style={{ fontFamily:'Inter', fontWeight:sel?700:500, fontSize:15,
+                      color:sel?C.accent:C.muted, letterSpacing:'-0.02em', transition:'all .15s' }}>{fmt(item.price)}</span>
+                }
               </div>
             </div>
           );
         })}
-        <div style={{ height:130 }} />
+        <div style={{ height:130 }}/>
       </div>
-
-      {/* Sticky bottom */}
-      <div style={{ position:'absolute', bottom:0, left:0, right:0,
-        background:'#fff', borderTop:`1px solid ${C.border}`,
-        padding:'16px 28px 36px', display:'flex', flexDirection:'column', gap:12 }}>
+      <div style={{ position:'absolute', bottom:0, left:0, right:0, background:'#fff',
+        borderTop:`1px solid ${C.border}`, padding:'16px 28px 36px', display:'flex', flexDirection:'column', gap:12 }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline' }}>
           <span style={{ fontFamily:'Inter', fontSize:13, color:C.muted }}>Your share</span>
-          <span style={{ fontFamily:'Inter', fontWeight:800, fontSize:28, color:C.dark, letterSpacing:'-0.04em' }}>
-            {fmt(total)}
-          </span>
+          <span style={{ fontFamily:'Inter', fontWeight:800, fontSize:28, color:C.dark, letterSpacing:'-0.04em' }}>{fmt(total)}</span>
         </div>
-        <CTAButton label="Confirm my order" onClick={() => go(5)} disabled={selected.size === 0} />
+        <CTAButton label="Confirm my order" onClick={()=>go(7)} disabled={selected.size===0}/>
       </div>
     </div>
   );
 }
 
-/* ─── Screen 5: Final Split Summary ─────────────────── */
-function S5_Summary({ back }) {
-  const perHead = (SERVICE + TAX) / PEOPLE.length;
-
-  // Count how many people claimed each item
-  const claims = {};
-  PEOPLE.forEach(p => p.items.forEach(id => {
-    claims[id] = (claims[id] || 0) + 1;
-  }));
-
-  // A person's share of one item
-  const itemShare = (id) => {
-    const item = ITEMS.find(i => i.id === id);
-    return item.price / claims[id];
-  };
-
-  const personTotal = (p) =>
-    p.items.reduce((s, id) => s + itemShare(id), 0) + perHead;
-
+/* ═══════════════════════════════════════════════════
+   SPLIT SUMMARY (Screen 7)
+═══════════════════════════════════════════════════ */
+function S_Summary({ go, back }) {
   return (
-    <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
+    <div style={{ display:'flex', flexDirection:'column', height:'100%', background:C.bg }}>
       <NavBar title="All confirmed" onBack={back}
-        right={
-          <div style={{ width:28, height:28, borderRadius:'50%', background:'#EAFAF3',
-            display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M2 7l4 4 6-7" stroke={C.green} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-        }
-      />
-
+        right={<div style={{ width:28, height:28, borderRadius:'50%', background:'#EAFAF3', display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M2 7l4 4 6-7" stroke={C.green} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>}/>
       <div style={{ padding:'4px 28px 20px' }}>
         <p style={{ fontFamily:'Inter', fontSize:14, color:C.muted, lineHeight:'20px' }}>
           Shared items have been split between everyone who had them.
         </p>
       </div>
-
-      {/* Breakdown cards */}
       <div style={{ flex:1, overflowY:'auto', padding:'0 28px', display:'flex', flexDirection:'column', gap:10 }}>
-        {PEOPLE.map((p) => {
-          const total = personTotal(p);
-          const isYou = p.name === 'You';
+        {PEOPLE.map(p => {
+          const total = personAmt(p);
+          const isYou = p.name==='You';
           return (
-            <div key={p.name} style={{ background: isYou ? '#FFF5F3' : C.light,
-              borderRadius:16, padding:'16px', border: isYou ? `1px solid #FFD5CE` : 'none' }}>
-
-              {/* Person header */}
+            <div key={p.name} style={{ background:isYou?'#FFF5F3':C.light, borderRadius:16, padding:'16px',
+              border:isYou?`1px solid #FFD5CE`:'none' }}>
               <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
-                <Avatar name={p.name} color={p.color} size={32} />
+                <Avatar name={p.name} color={p.color} size={32}/>
                 <div style={{ flex:1 }}>
-                  <div style={{ fontFamily:'Inter', fontWeight:600, fontSize:14, color:C.dark }}>
-                    {isYou ? 'You' : p.name}
-                  </div>
+                  <div style={{ fontFamily:'Inter', fontWeight:600, fontSize:14, color:C.dark }}>{isYou?'You':p.name}</div>
                 </div>
-                <span style={{ fontFamily:'Inter', fontWeight:800, fontSize:20,
-                  color: isYou ? C.accent : C.dark, letterSpacing:'-0.03em' }}>
-                  {fmt(total)}
-                </span>
+                <span style={{ fontFamily:'Inter', fontWeight:800, fontSize:20, color:isYou?C.accent:C.dark, letterSpacing:'-0.03em' }}>{fmt(total)}</span>
               </div>
-
-              {/* Item lines */}
               {p.items.map(id => {
-                const item   = ITEMS.find(i => i.id === id);
-                const share  = itemShare(id);
-                const shared = claims[id] > 1;
+                const item=ITEMS.find(i=>i.id===id), share=itemShare(id), shared=CLAIMS[id]>1;
                 return (
-                  <div key={id} style={{ display:'flex', justifyContent:'space-between',
-                    alignItems:'baseline', padding:'3px 0', paddingLeft:42 }}>
+                  <div key={id} style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', padding:'3px 0', paddingLeft:42 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:6 }}>
                       <span style={{ fontFamily:'Inter', fontSize:13, color:C.muted }}>{item.name}</span>
-                      {shared && (
-                        <span style={{ fontFamily:'Inter', fontSize:10, color:C.faint,
-                          background:C.border, borderRadius:4, padding:'1px 5px' }}>
-                          ÷{claims[id]}
-                        </span>
-                      )}
+                      {shared && <span style={{ fontFamily:'Inter', fontSize:10, color:C.faint, background:C.border, borderRadius:4, padding:'1px 5px' }}>÷{CLAIMS[id]}</span>}
                     </div>
                     <div style={{ display:'flex', alignItems:'baseline', gap:5 }}>
-                      {shared && (
-                        <span style={{ fontFamily:'Inter', fontSize:11, color:C.faint,
-                          textDecoration:'line-through' }}>{fmt(item.price)}</span>
-                      )}
+                      {shared && <span style={{ fontFamily:'Inter', fontSize:11, color:C.faint, textDecoration:'line-through' }}>{fmt(item.price)}</span>}
                       <span style={{ fontFamily:'Inter', fontSize:13, color:C.muted }}>{fmt(share)}</span>
                     </div>
                   </div>
                 );
               })}
-
-              {/* Tax & service */}
-              <div style={{ display:'flex', justifyContent:'space-between', padding:'5px 0 0', paddingLeft:42,
-                marginTop:4, borderTop:`1px solid rgba(0,0,0,0.05)` }}>
-                <span style={{ fontFamily:'Inter', fontSize:12, color:C.faint }}>Tax & service (split equally)</span>
+              <div style={{ display:'flex', justifyContent:'space-between', padding:'5px 0 0', paddingLeft:42, marginTop:4, borderTop:`1px solid rgba(0,0,0,.05)` }}>
+                <span style={{ fontFamily:'Inter', fontSize:12, color:C.faint }}>Tax & service</span>
                 <span style={{ fontFamily:'Inter', fontSize:12, color:C.faint }}>{fmt(perHead)}</span>
               </div>
             </div>
           );
         })}
-        <div style={{ height:20 }} />
+        <div style={{ height:20 }}/>
       </div>
-
       <div style={{ padding:'16px 28px 40px', borderTop:`1px solid ${C.border}` }}>
-        <CTAButton label="Request payments" onClick={() => {}} />
+        <CTAButton label="Request payments" onClick={()=>go(8)}/>
       </div>
     </div>
   );
 }
 
-/* ─── App Shell ──────────────────────────────────────── */
-const SCREEN_COUNT = 6;
+/* ═══════════════════════════════════════════════════
+   PAYMENT TRACKING (Screen 8)
+═══════════════════════════════════════════════════ */
+function S_PaymentTracking({ back }) {
+  const [paid,     setPaid]     = React.useState(new Set(['You']));
+  const [reminded, setReminded] = React.useState(new Set());
+  const [showConf, setShowConf] = React.useState(false);
+
+  const amts = Object.fromEntries(PEOPLE.map(p=>[p.name, personAmt(p)]));
+  const collected = PEOPLE.filter(p=>paid.has(p.name)).reduce((s,p)=>s+amts[p.name], 0);
+  const progress  = collected / TOTAL;
+
+  const remind = name => {
+    setReminded(prev => new Set([...prev, name]));
+    setTimeout(() => setReminded(prev => { const s=new Set(prev); s.delete(name); return s; }), 3000);
+  };
+
+  const markPaid = name => setPaid(prev => new Set([...prev, name]));
+
+  const allPaid = PEOPLE.every(p=>paid.has(p.name));
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', height:'100%', background:C.bg, position:'relative' }}>
+      <NavBar title="Collecting payments" onBack={back}/>
+
+      {/* Expense summary */}
+      <div style={{ margin:'4px 28px 20px', background:'#fff', borderRadius:16, padding:'14px 16px',
+        border:`1px solid ${C.border}`, display:'flex', alignItems:'center', gap:12 }}>
+        <div style={{ width:40, height:40, borderRadius:12, background:'#FFF0ED', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M4 3h12v2a6 6 0 01-12 0V3z" stroke={C.accent} strokeWidth="1.5" strokeLinejoin="round"/>
+            <path d="M10 9v8M7 17h6" stroke={C.accent} strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+        </div>
+        <div style={{ flex:1 }}>
+          <div style={{ fontFamily:'Inter', fontWeight:600, fontSize:14, color:C.dark, letterSpacing:'-0.01em' }}>Tartine Bakery</div>
+          <div style={{ fontFamily:'Inter', fontSize:12, color:C.muted, marginTop:1 }}>Mar 17 · 4 people</div>
+        </div>
+        <span style={{ fontFamily:'Inter', fontWeight:700, fontSize:16, color:C.dark, letterSpacing:'-0.02em' }}>{fmt(TOTAL)}</span>
+      </div>
+
+      {/* Progress */}
+      <div style={{ paddingInline:28, marginBottom:20 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', marginBottom:8 }}>
+          <span style={{ fontFamily:'Inter', fontSize:13, color:C.muted }}>Collected</span>
+          <span style={{ fontFamily:'Inter', fontWeight:700, fontSize:13, color:allPaid?C.green:C.dark }}>
+            {fmt(collected)} <span style={{ fontWeight:400, color:C.muted }}>of {fmt(TOTAL)}</span>
+          </span>
+        </div>
+        <div style={{ height:6, borderRadius:3, background:C.light, overflow:'hidden' }}>
+          <div style={{ height:'100%', borderRadius:3, width:`${progress*100}%`,
+            background: allPaid ? C.green : C.accent, transition:'width .4s ease' }}/>
+        </div>
+      </div>
+
+      {/* People list */}
+      <div style={{ flex:1, overflowY:'auto', paddingInline:28, display:'flex', flexDirection:'column', gap:10 }}>
+        {PEOPLE.map(p => {
+          const isPaid = paid.has(p.name);
+          const isYou  = p.name==='You';
+          const isRem  = reminded.has(p.name);
+          return (
+            <div key={p.name} style={{ background:'#fff', borderRadius:16, padding:'14px 16px',
+              border:`1px solid ${isPaid ? (isYou?'#FFD5CE':C.green+'44') : C.border}`,
+              display:'flex', alignItems:'center', gap:12, transition:'border-color .3s' }}>
+              <div style={{ position:'relative' }}>
+                <Avatar name={p.name} color={p.color} size={38}/>
+                {isPaid && (
+                  <div style={{ position:'absolute', bottom:-2, right:-2, width:16, height:16,
+                    borderRadius:'50%', background:isYou?C.accent:C.green,
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    border:'2px solid #fff' }}>
+                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                      <path d="M1 4l2 2 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                )}
+              </div>
+              <div style={{ flex:1 }}>
+                <div style={{ fontFamily:'Inter', fontWeight:600, fontSize:14, color:C.dark }}>{isYou?'You (host)':p.name}</div>
+                <div style={{ fontFamily:'Inter', fontSize:12, marginTop:2,
+                  color:isPaid?(isYou?C.accent:C.green):C.muted, fontWeight:isPaid?500:400 }}>
+                  {isPaid ? (isYou?'Paid · host':'Paid') : 'Payment pending'}
+                </div>
+              </div>
+              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <span style={{ fontFamily:'Inter', fontWeight:700, fontSize:15, color:C.dark, letterSpacing:'-0.02em' }}>{fmt(amts[p.name])}</span>
+                {!isPaid && !isYou && (
+                  <button onClick={()=>remind(p.name)} style={{
+                    background: isRem ? C.green+'22' : C.light,
+                    border: 'none', borderRadius:8, padding:'6px 10px', cursor:'pointer',
+                    fontFamily:'Inter', fontWeight:600, fontSize:12,
+                    color: isRem ? C.green : C.muted, transition:'all .2s', whiteSpace:'nowrap' }}>
+                    {isRem ? '✓ Sent' : 'Remind'}
+                  </button>
+                )}
+                {!isPaid && !isYou && (
+                  <button onClick={()=>markPaid(p.name)} style={{
+                    background: C.accent+'15', border:'none', borderRadius:8, padding:'6px 10px',
+                    cursor:'pointer', fontFamily:'Inter', fontWeight:600, fontSize:12, color:C.accent,
+                    whiteSpace:'nowrap' }}>
+                    Mark paid
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+        <div style={{ height:20 }}/>
+      </div>
+
+      {/* Bottom CTA */}
+      <div style={{ padding:'16px 28px 40px', borderTop:`1px solid ${C.border}` }}>
+        {allPaid
+          ? <CTAButton label="All settled — done!" onClick={()=>setShowConf(true)}/>
+          : <CTAButton label="Remind all pending" secondary onClick={()=>PEOPLE.filter(p=>!paid.has(p.name)&&p.name!=='You').forEach(p=>remind(p.name))}/>
+        }
+      </div>
+
+      {/* Confirmation overlay */}
+      {showConf && (
+        <div style={{ position:'absolute', inset:0, background:'rgba(28,27,25,.6)', zIndex:300,
+          display:'flex', alignItems:'flex-end', animation:'fadeIn .2s' }}>
+          <div style={{ background:'#fff', borderRadius:'24px 24px 0 0', width:'100%', padding:'32px 28px 48px',
+            animation:'slideUp .3s cubic-bezier(.4,0,.2,1)', display:'flex', flexDirection:'column', alignItems:'center', gap:16, textAlign:'center' }}>
+            <div style={{ width:64, height:64, borderRadius:'50%', background:'#EAFAF3', display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                <path d="M6 16l8 8 14-14" stroke={C.green} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <div>
+              <div style={{ fontFamily:'Inter', fontWeight:800, fontSize:24, color:C.dark, letterSpacing:'-0.03em' }}>All settled!</div>
+              <div style={{ fontFamily:'Inter', fontSize:14, color:C.muted, marginTop:6, lineHeight:'20px' }}>
+                Everyone has paid their share for Tartine Bakery.
+              </div>
+            </div>
+            <div style={{ width:'100%', background:C.light, borderRadius:16, padding:'14px 16px', display:'flex', justifyContent:'space-between' }}>
+              <span style={{ fontFamily:'Inter', fontSize:14, color:C.muted }}>Total collected</span>
+              <span style={{ fontFamily:'Inter', fontWeight:700, fontSize:14, color:C.green }}>{fmt(TOTAL)}</span>
+            </div>
+            <div style={{ width:'100%' }}>
+              <CTAButton label="Back to home" onClick={back}/>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   APP SHELL
+═══════════════════════════════════════════════════ */
+const TOTAL_SCREENS = 9; // 0=home, 1=day, 2=entry, 3=capture, 4=review, 5=share, 6=guest, 7=summary, 8=payments
 
 function App() {
-  const [screen, setScreen] = React.useState(0);
+  const [splash,  setSplash]  = React.useState(true);
+  const [screen,  setScreen]  = React.useState(0);
+  const [dayView, setDayView] = React.useState(17);
 
   React.useEffect(() => {
-    // Update dots
     const dots = document.getElementById('dots');
     if (!dots) return;
     dots.innerHTML = '';
-    for (let i = 0; i < SCREEN_COUNT; i++) {
+    for (let i=0; i<TOTAL_SCREENS; i++) {
       const d = document.createElement('div');
-      d.className = 'pill-dot' + (i === screen ? ' active' : '');
+      d.className = 'dot' + (i===screen?' on':'');
       dots.appendChild(d);
     }
   }, [screen]);
 
-  const go   = (n) => setScreen(n);
-  const back = ()  => setScreen(s => Math.max(0, s - 1));
+  const go      = n  => setScreen(n);
+  const back    = () => setScreen(s => Math.max(0, s-1));
+  const goDay   = d  => { setDayView(d); setScreen(1); };
+  const goPayments = () => setScreen(8);
 
-  const cls = (n) => {
-    if (n === screen) return 'screen';
-    if (n < screen)  return 'screen hidden-left';
-    return 'screen hidden-right';
+  const cls = n => {
+    if (n===screen) return 'screen';
+    return n<screen ? 'screen hl' : 'screen hr';
   };
 
   return (
     <>
-      <div className={cls(0)}><S0_ExpenseEntry go={go} back={back} /></div>
-      <div className={cls(1)}><S1_CaptureBill  go={go} back={back} /></div>
-      <div className={cls(2)}><S2_ReviewItems  go={go} back={back} /></div>
-      <div className={cls(3)}><S3_ShareLink    go={go} back={back} /></div>
-      <div className={cls(4)}><S4_GuestPicks   go={go} back={back} /></div>
-      <div className={cls(5)}><S5_Summary             back={back} /></div>
+      {splash && <SplashScreen onDone={()=>setSplash(false)}/>}
+      <div className={cls(0)}><S_Home             go={go}   goDay={goDay}/></div>
+      <div className={cls(1)}><S_DayDetail        day={dayView} back={back} goPayments={goPayments}/></div>
+      <div className={cls(2)}><S_ExpenseEntry     go={go}   back={back}/></div>
+      <div className={cls(3)}><S_CaptureBill      go={go}   back={back}/></div>
+      <div className={cls(4)}><S_ReviewItems      go={go}   back={back}/></div>
+      <div className={cls(5)}><S_ShareLink        go={go}   back={back}/></div>
+      <div className={cls(6)}><S_GuestPicks       go={go}   back={back}/></div>
+      <div className={cls(7)}><S_Summary          go={go}   back={back}/></div>
+      <div className={cls(8)}><S_PaymentTracking         back={()=>setScreen(0)}/></div>
     </>
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
-<style>
-  @keyframes fadeSlide {
-    from { opacity:0; transform:translateY(-6px); }
-    to   { opacity:1; transform:translateY(0); }
-  }
-  @keyframes slideUp {
-    from { transform:translateY(100%); }
-    to   { transform:translateY(0); }
-  }
-</style>
 </body>
 </html>
