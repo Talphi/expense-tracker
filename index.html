@@ -272,10 +272,10 @@ function SplashScreen({ onDone }) {
 /* ═══════════════════════════════════════════════════
    HOME SCREEN
 ═══════════════════════════════════════════════════ */
-function S_Home({ go, goDay, selectedDay, merchant, currency, setCurrency }) {
+function S_Home({ go, goDay, selectedDay, merchant, currency, setCurrency, eatOutSettled }) {
   const fmt = useFmt();
   const [showCurrPicker, setShowCurrPicker] = React.useState(false);
-  const EAT_OUT = { id:'e1', merchant, amount:84.50, cat:'Food', type:'eating-out', people:4, status:'collecting' };
+  const EAT_OUT = { id:'e1', merchant, amount:84.50, cat:'Food', type:'eating-out', people:4, status: eatOutSettled ? 'settled' : 'collecting' };
   const DAILY_SPEND = { ...DAILY_SPEND_BASE, [selectedDay]: (DAILY_SPEND_BASE[selectedDay]||0) + 84.50 };
   const totalMonth = Object.values(DAILY_SPEND).reduce((s,v)=>s+v, 0);
   const maxSpend   = Math.max(...Object.values(DAILY_SPEND));
@@ -451,9 +451,9 @@ function S_Home({ go, goDay, selectedDay, merchant, currency, setCurrency }) {
 /* ═══════════════════════════════════════════════════
    DAY DETAIL SCREEN
 ═══════════════════════════════════════════════════ */
-function S_DayDetail({ day, selectedDay, back, goPayments, goEdit, merchant }) {
+function S_DayDetail({ day, selectedDay, back, goPayments, goEdit, merchant, eatOutSettled }) {
   const fmt = useFmt();
-  const EAT_OUT = { id:'e1', merchant, amount:84.50, cat:'Food', type:'eating-out', people:4, status:'collecting' };
+  const EAT_OUT = { id:'e1', merchant, amount:84.50, cat:'Food', type:'eating-out', people:4, status: eatOutSettled ? 'settled' : 'collecting' };
   const baseExps = (DAY_EXPENSES[day]||[]).filter(e=>e.type!=='eating-out');
   const exps    = day===selectedDay ? [EAT_OUT, ...baseExps] : baseExps;
   const total   = exps.reduce((s,e)=>s+e.amount, 0);
@@ -971,7 +971,7 @@ function S_Summary({ go, back }) {
 /* ═══════════════════════════════════════════════════
    PAYMENT TRACKING (Screen 8)
 ═══════════════════════════════════════════════════ */
-function S_PaymentTracking({ back, merchant, selectedDay }) {
+function S_PaymentTracking({ back, merchant, selectedDay, onSettled }) {
   const fmt = useFmt();
   const [paid,     setPaid]     = React.useState(new Set(['You']));
   const [reminded, setReminded] = React.useState(new Set());
@@ -986,7 +986,11 @@ function S_PaymentTracking({ back, merchant, selectedDay }) {
     setTimeout(() => setReminded(prev => { const s=new Set(prev); s.delete(name); return s; }), 3000);
   };
 
-  const markPaid = name => setPaid(prev => new Set([...prev, name]));
+  const markPaid = name => setPaid(prev => {
+    const next = new Set([...prev, name]);
+    if (PEOPLE.every(p => next.has(p.name))) onSettled?.();
+    return next;
+  });
 
   const allPaid = PEOPLE.every(p=>paid.has(p.name));
 
@@ -1127,9 +1131,10 @@ function App() {
   const [splash,      setSplash]      = React.useState(true);
   const [screen,      setScreen]      = React.useState(0);
   const [dayView,     setDayView]     = React.useState(17);
-  const [merchant,    setMerchant]    = React.useState('Tartine Bakery');
-  const [selectedDay, setSelectedDay] = React.useState(17);
-  const [currency,    setCurrency]    = React.useState('INR');
+  const [merchant,      setMerchant]      = React.useState('Tartine Bakery');
+  const [selectedDay,   setSelectedDay]   = React.useState(17);
+  const [currency,      setCurrency]      = React.useState('INR');
+  const [eatOutSettled, setEatOutSettled] = React.useState(false);
   const fmt = React.useMemo(() => {
     const { symbol, rate, dec } = CURRENCIES[currency];
     return n => symbol + (n * rate).toFixed(dec);
@@ -1161,15 +1166,15 @@ function App() {
   return (
     <CurrencyCodeCtx.Provider value={currency}><CurrencyCtx.Provider value={fmt}>
       {splash && <SplashScreen onDone={()=>setSplash(false)}/>}
-      <div className={cls(0)}><S_Home             go={go}   goDay={goDay} selectedDay={selectedDay} merchant={merchant} currency={currency} setCurrency={setCurrency}/></div>
-      <div className={cls(1)}><S_DayDetail        day={dayView} selectedDay={selectedDay} back={back} goPayments={goPayments} goEdit={goEdit} merchant={merchant}/></div>
+      <div className={cls(0)}><S_Home             go={go}   goDay={goDay} selectedDay={selectedDay} merchant={merchant} currency={currency} setCurrency={setCurrency} eatOutSettled={eatOutSettled}/></div>
+      <div className={cls(1)}><S_DayDetail        day={dayView} selectedDay={selectedDay} back={back} goPayments={goPayments} goEdit={goEdit} merchant={merchant} eatOutSettled={eatOutSettled}/></div>
       <div className={cls(2)}><S_ExpenseEntry     go={go}   back={back} merchant={merchant} setMerchant={setMerchant} selectedDay={selectedDay} setSelectedDay={setSelectedDay}/></div>
       <div className={cls(3)}><S_CaptureBill      go={go}   back={back} merchant={merchant}/></div>
       <div className={cls(4)}><S_ReviewItems      go={go}   back={back}/></div>
       <div className={cls(5)}><S_ShareLink        go={go}   back={back} merchant={merchant}/></div>
       <div className={cls(6)}><S_GuestPicks       go={go}   back={back} merchant={merchant} selectedDay={selectedDay}/></div>
       <div className={cls(7)}><S_Summary          go={go}   back={back}/></div>
-      <div className={cls(8)}><S_PaymentTracking  back={()=>setScreen(0)} merchant={merchant} selectedDay={selectedDay}/></div>
+      <div className={cls(8)}><S_PaymentTracking  back={()=>setScreen(0)} merchant={merchant} selectedDay={selectedDay} onSettled={()=>setEatOutSettled(true)}/></div>
     </CurrencyCtx.Provider></CurrencyCodeCtx.Provider>
   );
 }
