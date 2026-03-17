@@ -86,6 +86,109 @@ const PEOPLE = [
 
 const fmt = (n) => `$${n.toFixed(2)}`;
 
+/* Daily spending for March 2026 (up to today Mar 17) */
+const DAILY_SPEND = {
+  2:23.50, 3:45.20, 4:12.00, 5:67.80, 6:89.00, 7:34.50,
+  9:28.00, 10:56.40, 11:19.80, 12:43.20, 13:78.50, 14:22.00,
+  16:31.60, 17:84.50,
+};
+
+const DAY_LABELS = ['Mo','Tu','We','Th','Fr','Sa','Su'];
+
+/* March 1, 2026 = Sunday → offset 6 with Mon-first grid */
+function buildMarchGrid() {
+  const cells = Array(6).fill(null);
+  for (let d = 1; d <= 31; d++) cells.push(d);
+  while (cells.length % 7 !== 0) cells.push(null);
+  return cells;
+}
+
+function CalendarSheet({ selectedDay, onSelect, onClose }) {
+  const [sel, setSel] = React.useState(selectedDay);
+  const cells = buildMarchGrid();
+  const maxSpend = Math.max(...Object.values(DAILY_SPEND));
+
+  const confirm = () => { onSelect(sel); onClose(); };
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position:'absolute', inset:0,
+        background:'rgba(28,27,25,0.45)', zIndex:200 }} />
+      <div style={{ position:'absolute', bottom:0, left:0, right:0,
+        background:'#fff', borderRadius:'24px 24px 0 0', zIndex:201,
+        paddingBottom:36, animation:'slideUp 0.28s cubic-bezier(0.4,0,0.2,1)' }}>
+
+        {/* Handle */}
+        <div style={{ width:36, height:4, borderRadius:2, background:C.border, margin:'12px auto 0' }} />
+
+        {/* Month header */}
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 24px 16px' }}>
+          <span style={{ fontFamily:'Inter', fontWeight:700, fontSize:18, color:C.dark, letterSpacing:'-0.02em' }}>
+            March 2026
+          </span>
+          <div style={{ display:'flex', gap:4 }}>
+            {['‹','›'].map((ch, i) => (
+              <div key={i} style={{ width:32, height:32, borderRadius:10, background:C.light,
+                display:'flex', alignItems:'center', justifyContent:'center',
+                fontFamily:'Inter', fontSize:18, color:C.muted, cursor:'pointer', userSelect:'none' }}>
+                {ch}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Day-of-week headers */}
+        <div style={{ display:'flex', paddingInline:16, marginBottom:4 }}>
+          {DAY_LABELS.map(d => (
+            <div key={d} style={{ flex:1, textAlign:'center', fontFamily:'Inter',
+              fontWeight:500, fontSize:11, color:C.faint, letterSpacing:'0.05em' }}>{d}</div>
+          ))}
+        </div>
+
+        {/* Grid */}
+        <div style={{ display:'flex', flexWrap:'wrap', paddingInline:16 }}>
+          {cells.map((day, i) => {
+            if (!day) return <div key={`e${i}`} style={{ flex:'0 0 calc(100%/7)', height:54 }} />;
+            const spend   = DAILY_SPEND[day] || 0;
+            const isSel   = day === sel;
+            const isToday = day === 17;
+            const isFuture= day > 17;
+            const barH    = spend ? Math.max(2, Math.round((spend / maxSpend) * 12)) : 0;
+            return (
+              <div key={day} onClick={() => !isFuture && setSel(day)}
+                style={{ flex:'0 0 calc(100%/7)', height:58, display:'flex', flexDirection:'column',
+                  alignItems:'center', justifyContent:'flex-start', paddingTop:4,
+                  cursor: isFuture ? 'default' : 'pointer' }}>
+                <div style={{ width:34, height:34, borderRadius:'50%',
+                  background: isSel ? C.accent : 'transparent',
+                  border: isToday && !isSel ? `1.5px solid ${C.accent}` : 'none',
+                  display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  <span style={{ fontFamily:'Inter', fontSize:14, letterSpacing:'-0.01em',
+                    fontWeight: isSel||isToday ? 700 : 400,
+                    color: isSel ? '#fff' : isFuture ? C.faint : C.dark }}>
+                    {day}
+                  </span>
+                </div>
+                {spend > 0 && (
+                  <span style={{ fontFamily:'Inter', fontSize:9, fontWeight:500, marginTop:2,
+                    color: isSel ? C.accent : C.muted }}>
+                    ${spend < 100 ? spend.toFixed(0) : Math.round(spend)}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Confirm */}
+        <div style={{ padding:'12px 24px 0' }}>
+          <CTAButton label={`Confirm — Mar ${sel}`} onClick={confirm} />
+        </div>
+      </div>
+    </>
+  );
+}
+
 /* ─── Shared UI ─────────────────────────────────────── */
 const C = {
   bg: '#F5F3EF', dark: '#1C1B19', muted: '#8A8680',
@@ -142,9 +245,16 @@ function CTAButton({ label, onClick, disabled }) {
 
 /* ─── Screen 0: Expense Entry ───────────────────────── */
 function S0_ExpenseEntry({ go }) {
-  const [splitOn, setSplitOn] = React.useState(false);
+  const [splitOn,     setSplitOn]     = React.useState(false);
+  const [merchant,    setMerchant]    = React.useState('Tartine Bakery');
+  const [editingName, setEditingName] = React.useState(false);
+  const [calOpen,     setCalOpen]     = React.useState(false);
+  const [selectedDay, setSelectedDay] = React.useState(17);
+
+  const dateLabel = selectedDay === 17 ? `Today, Mar ${selectedDay}` : `Mar ${selectedDay}, 2026`;
+
   return (
-    <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
+    <div style={{ display:'flex', flexDirection:'column', height:'100%', position:'relative' }}>
       {/* Nav */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
         padding:'52px 28px 16px' }}>
@@ -186,13 +296,60 @@ function S0_ExpenseEntry({ go }) {
 
       {/* Fields */}
       <div style={{ display:'flex', flexDirection:'column', paddingInline:28 }}>
-        {[['Merchant','Tartine Bakery',false],['Date','Today, Mar 17',false],['Notes','Add a note…',true]].map(([l,v,ph]) => (
-          <div key={l} style={{ borderBottom:`1px solid ${C.border}`, display:'flex', flexDirection:'column', gap:5, padding:'14px 0' }}>
-            <span style={{ fontFamily:'Inter', fontWeight:500, fontSize:11, color:C.muted, letterSpacing:'0.07em', textTransform:'uppercase' }}>{l}</span>
-            <span style={{ fontFamily:'Inter', fontWeight: ph?400:500, fontSize:17, color: ph?C.faint:C.dark, letterSpacing:'-0.01em' }}>{v}</span>
+
+        {/* Merchant — editable */}
+        <div style={{ borderBottom:`1px solid ${C.border}`, display:'flex', flexDirection:'column', gap:5, padding:'14px 0' }}>
+          <span style={{ fontFamily:'Inter', fontWeight:500, fontSize:11, color:C.muted, letterSpacing:'0.07em', textTransform:'uppercase' }}>Merchant</span>
+          {editingName ? (
+            <input
+              autoFocus
+              value={merchant}
+              onChange={e => setMerchant(e.target.value)}
+              onBlur={() => setEditingName(false)}
+              onKeyDown={e => e.key === 'Enter' && setEditingName(false)}
+              style={{ fontFamily:'Inter', fontWeight:500, fontSize:17, color:C.dark,
+                letterSpacing:'-0.01em', border:'none', background:'transparent',
+                outline:'none', width:'100%', padding:0 }}
+            />
+          ) : (
+            <span onClick={() => setEditingName(true)}
+              style={{ fontFamily:'Inter', fontWeight:500, fontSize:17, color:C.dark,
+                letterSpacing:'-0.01em', cursor:'text', borderBottom:`1.5px solid ${C.accent}`,
+                display:'inline-block', paddingBottom:1 }}>
+              {merchant}
+            </span>
+          )}
+        </div>
+
+        {/* Date — opens calendar */}
+        <div onClick={() => setCalOpen(true)}
+          style={{ borderBottom:`1px solid ${C.border}`, display:'flex', flexDirection:'column', gap:5, padding:'14px 0', cursor:'pointer' }}>
+          <span style={{ fontFamily:'Inter', fontWeight:500, fontSize:11, color:C.muted, letterSpacing:'0.07em', textTransform:'uppercase' }}>Date</span>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+            <span style={{ fontFamily:'Inter', fontWeight:500, fontSize:17, color:C.dark, letterSpacing:'-0.01em' }}>{dateLabel}</span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <rect x="2" y="3" width="12" height="11" rx="2" stroke={C.muted} strokeWidth="1.4"/>
+              <path d="M5 1v3M11 1v3M2 7h12" stroke={C.muted} strokeWidth="1.4" strokeLinecap="round"/>
+            </svg>
           </div>
-        ))}
+        </div>
+
+        {/* Notes */}
+        <div style={{ borderBottom:`1px solid ${C.border}`, display:'flex', flexDirection:'column', gap:5, padding:'14px 0' }}>
+          <span style={{ fontFamily:'Inter', fontWeight:500, fontSize:11, color:C.muted, letterSpacing:'0.07em', textTransform:'uppercase' }}>Notes</span>
+          <span style={{ fontFamily:'Inter', fontSize:17, color:C.faint, letterSpacing:'-0.01em' }}>Add a note…</span>
+        </div>
+
       </div>
+
+      {/* Calendar bottom sheet */}
+      {calOpen && (
+        <CalendarSheet
+          selectedDay={selectedDay}
+          onSelect={setSelectedDay}
+          onClose={() => setCalOpen(false)}
+        />
+      )}
 
       {/* Split toggle */}
       <div style={{ borderBottom:`1px solid ${C.border}`, display:'flex', flexDirection:'column' }}>
@@ -650,6 +807,10 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   @keyframes fadeSlide {
     from { opacity:0; transform:translateY(-6px); }
     to   { opacity:1; transform:translateY(0); }
+  }
+  @keyframes slideUp {
+    from { transform:translateY(100%); }
+    to   { transform:translateY(0); }
   }
 </style>
 </body>
