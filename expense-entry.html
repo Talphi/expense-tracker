@@ -826,8 +826,7 @@ function S_GuestPicks({ go, back, merchant, selectedDay }) {
   const fmt = useFmt();
   const [selected, setSelected] = React.useState(new Set());
   const toggle = id => setSelected(prev => { const s=new Set(prev); s.has(id)?s.delete(id):s.add(id); return s; });
-  const otherCount = id => OTHERS.filter(p=>p.items.includes(id)).length;
-  const myShare    = item => selected.has(item.id) ? item.price/(otherCount(item.id)+1) : null;
+  const myShare = item => selected.has(item.id) ? item.price / CLAIMS[item.id] : null;
   const total      = ITEMS.reduce((s,item)=>s+(myShare(item)||0), 0);
 
   return (
