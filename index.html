@@ -944,47 +944,52 @@ function S_PaymentTracking({ back }) {
           return (
             <div key={p.name} style={{ background:'#fff', borderRadius:16, padding:'14px 16px',
               border:`1px solid ${isPaid ? (isYou?'#FFD5CE':C.green+'44') : C.border}`,
-              display:'flex', alignItems:'center', gap:12, transition:'border-color .3s' }}>
-              <div style={{ position:'relative' }}>
-                <Avatar name={p.name} color={p.color} size={38}/>
-                {isPaid && (
-                  <div style={{ position:'absolute', bottom:-2, right:-2, width:16, height:16,
-                    borderRadius:'50%', background:isYou?C.accent:C.green,
-                    display:'flex', alignItems:'center', justifyContent:'center',
-                    border:'2px solid #fff' }}>
-                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-                      <path d="M1 4l2 2 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </div>
-                )}
-              </div>
-              <div style={{ flex:1 }}>
-                <div style={{ fontFamily:'Inter', fontWeight:600, fontSize:14, color:C.dark }}>{isYou?'You (host)':p.name}</div>
-                <div style={{ fontFamily:'Inter', fontSize:12, marginTop:2,
-                  color:isPaid?(isYou?C.accent:C.green):C.muted, fontWeight:isPaid?500:400 }}>
-                  {isPaid ? (isYou?'Paid · host':'Paid') : 'Payment pending'}
+              display:'flex', flexDirection:'column', gap:10, transition:'border-color .3s' }}>
+
+              {/* Top row: avatar + name + amount */}
+              <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                <div style={{ position:'relative', flexShrink:0 }}>
+                  <Avatar name={p.name} color={p.color} size={38}/>
+                  {isPaid && (
+                    <div style={{ position:'absolute', bottom:-2, right:-2, width:16, height:16,
+                      borderRadius:'50%', background:isYou?C.accent:C.green,
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                      border:'2px solid #fff' }}>
+                      <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                        <path d="M1 4l2 2 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                  )}
                 </div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontFamily:'Inter', fontWeight:600, fontSize:14, color:C.dark }}>{isYou?'You (host)':p.name}</div>
+                  <div style={{ fontFamily:'Inter', fontSize:12, marginTop:2,
+                    color:isPaid?(isYou?C.accent:C.green):C.muted, fontWeight:isPaid?500:400 }}>
+                    {isPaid ? (isYou?'Paid · host':'Paid') : 'Payment pending'}
+                  </div>
+                </div>
+                <span style={{ fontFamily:'Inter', fontWeight:700, fontSize:16, color:C.dark, letterSpacing:'-0.02em', flexShrink:0 }}>
+                  {fmt(amts[p.name])}
+                </span>
               </div>
-              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                <span style={{ fontFamily:'Inter', fontWeight:700, fontSize:15, color:C.dark, letterSpacing:'-0.02em' }}>{fmt(amts[p.name])}</span>
-                {!isPaid && !isYou && (
+
+              {/* Action buttons row — only for pending non-host */}
+              {!isPaid && !isYou && (
+                <div style={{ display:'flex', gap:8, paddingLeft:50 }}>
                   <button onClick={()=>remind(p.name)} style={{
-                    background: isRem ? C.green+'22' : C.light,
-                    border: 'none', borderRadius:8, padding:'6px 10px', cursor:'pointer',
-                    fontFamily:'Inter', fontWeight:600, fontSize:12,
-                    color: isRem ? C.green : C.muted, transition:'all .2s', whiteSpace:'nowrap' }}>
-                    {isRem ? '✓ Sent' : 'Remind'}
+                    flex:1, background:isRem?C.green+'18':C.light, border:'none', borderRadius:10,
+                    padding:'9px 0', cursor:'pointer', fontFamily:'Inter', fontWeight:600, fontSize:13,
+                    color:isRem?C.green:C.muted, transition:'all .2s' }}>
+                    {isRem ? '✓ Reminded' : 'Remind'}
                   </button>
-                )}
-                {!isPaid && !isYou && (
                   <button onClick={()=>markPaid(p.name)} style={{
-                    background: C.accent+'15', border:'none', borderRadius:8, padding:'6px 10px',
-                    cursor:'pointer', fontFamily:'Inter', fontWeight:600, fontSize:12, color:C.accent,
-                    whiteSpace:'nowrap' }}>
+                    flex:1, background:C.accent+'15', border:'none', borderRadius:10,
+                    padding:'9px 0', cursor:'pointer', fontFamily:'Inter', fontWeight:600, fontSize:13,
+                    color:C.accent }}>
                     Mark paid
                   </button>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           );
         })}
