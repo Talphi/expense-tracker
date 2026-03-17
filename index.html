@@ -405,7 +405,7 @@ function S_DayDetail({ day, back, goPayments, merchant }) {
                 <div style={{ width:12, height:12, borderRadius:'50%', background:CAT_COLORS[e.cat]||CAT_COLORS.default }}/>
               </div>
               <div style={{ flex:1 }}>
-                <div style={{ fontFamily:'Inter', fontWeight:600, fontSize:15, color:C.dark, letterSpacing:'-0.01em' }}>{e.merchant}</div>
+                <div style={{ fontFamily:'Inter', fontWeight:600, fontSize:15, color:C.dark, letterSpacing:'-0.01em' }}>{e.type==='eating-out' ? merchant : e.merchant}</div>
                 <div style={{ fontFamily:'Inter', fontSize:12, color:C.muted, marginTop:1 }}>{e.cat}</div>
               </div>
               <span style={{ fontFamily:'Inter', fontWeight:700, fontSize:17, color:C.dark, letterSpacing:'-0.02em' }}>{fmt(e.amount)}</span>
