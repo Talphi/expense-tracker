@@ -171,6 +171,7 @@ function CTAButton({ label, onClick, disabled, secondary }) {
 
 /* Calendar sheet (date picker) */
 function CalendarSheet({ selectedDay, onSelect, onClose }) {
+  const fmt = useFmt();
   const [sel, setSel] = React.useState(selectedDay);
   const max = Math.max(...Object.values(DAILY_SPEND_BASE));
   return (
@@ -213,7 +214,7 @@ function CalendarSheet({ selectedDay, onSelect, onClose }) {
                     color:isSel?'#fff':isFuture?C.faint:C.dark }}>{day}</span>
                 </div>
                 {spend>0 && <span style={{ fontFamily:'Inter', fontSize:9, fontWeight:500, marginTop:1,
-                  color:isSel?C.accent:C.muted }}>${spend<100?spend.toFixed(0):Math.round(spend)}</span>}
+                  color:isSel?C.accent:C.muted }}>{fmt(spend)}</span>}
               </div>
             );
           })}
@@ -353,7 +354,7 @@ function S_Home({ go, goDay, selectedDay, merchant, currency, setCurrency }) {
                 {spend>0 && (
                   <div style={{ fontFamily:'Inter', fontSize:9, fontWeight:500, marginTop:2,
                     color: isToday ? C.accent : C.muted }}>
-                    ${spend<100?spend.toFixed(0):Math.round(spend)}
+                    {fmt(spend)}
                   </div>
                 )}
               </div>
