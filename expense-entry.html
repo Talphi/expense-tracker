@@ -317,12 +317,12 @@ function S_Home({ go, goDay, selectedDay, merchant, currency, setCurrency }) {
         <div style={{ display:'flex', flexWrap:'wrap' }}>
           {MARCH_GRID.map((day, i) => {
             if (!day) return <div key={`e${i}`} style={{ flex:'0 0 calc(100%/7)', height:68 }}/>;
-            const spend   = DAILY_SPEND[day]||0;
-            const isToday = day===17;
-            const isFuture= day>17;
-            const hasExp  = !!(DAY_EXPENSES[day]&&DAY_EXPENSES[day].length) || day===selectedDay;
-            const intensity = spend ? spend/maxSpend : 0;
-            const barH    = spend ? Math.max(3, Math.round(intensity*20)) : 0;
+            const spend      = DAILY_SPEND[day]||0;
+            const isToday    = day===17;
+            const isSelected = day===selectedDay && selectedDay!==17;
+            const isFuture   = day>17;
+            const hasExp     = !!(DAY_EXPENSES[day]&&DAY_EXPENSES[day].length) || day===selectedDay;
+            const intensity  = spend ? spend/maxSpend : 0;
 
             return (
               <div key={day} onClick={() => hasExp && goDay(day)}
@@ -331,12 +331,12 @@ function S_Home({ go, goDay, selectedDay, merchant, currency, setCurrency }) {
                   cursor: hasExp ? 'pointer' : 'default' }}>
                 {/* Date circle */}
                 <div style={{ width:36, height:36, borderRadius:'50%',
-                  background: isToday ? C.dark : 'transparent',
-                  border: !isToday && hasExp ? `1.5px solid ${C.border}` : 'none',
+                  background: isToday ? C.dark : isSelected ? C.accent : 'transparent',
+                  border: !isToday && !isSelected && hasExp ? `1.5px solid ${C.border}` : 'none',
                   display:'flex', alignItems:'center', justifyContent:'center' }}>
                   <span style={{ fontFamily:'Inter', fontSize:14, letterSpacing:'-0.01em',
-                    fontWeight: isToday ? 700 : hasExp ? 600 : 400,
-                    color: isToday ? '#fff' : isFuture ? C.faint : C.dark }}>
+                    fontWeight: isToday||isSelected ? 700 : hasExp ? 600 : 400,
+                    color: isToday||isSelected ? '#fff' : isFuture ? C.faint : C.dark }}>
                     {day}
                   </span>
                 </div>
@@ -530,16 +530,18 @@ function S_DayDetail({ day, selectedDay, back, goPayments, goEdit, merchant }) {
    EXPENSE ENTRY (Screen 2)
 ═══════════════════════════════════════════════════ */
 function S_ExpenseEntry({ go, back, merchant, setMerchant, selectedDay, setSelectedDay }) {
-  const fmt = useFmt();
   const [splitOn,     setSplitOn]     = React.useState(false);
   const [editingName, setEditingName] = React.useState(false);
   const [calOpen,     setCalOpen]     = React.useState(false);
-  const dateLabel = selectedDay===17 ? `Today, Mar ${selectedDay}` : `Mar ${selectedDay}, 2026`;
+  const weekdays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const wday = weekdays[(0 + selectedDay - 1) % 7];
+  const dateLabel = selectedDay===17 ? `Today, Mar ${selectedDay}` : `${wday}, Mar ${selectedDay}`;
   const currCode = useCurrencyCode();
   const { symbol, rate, dec } = CURRENCIES[currCode];
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', height:'100%', background:C.bg, position:'relative' }}>
+    <React.Fragment>
+    <div style={{ display:'flex', flexDirection:'column', height:'100%', background:C.bg }}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'52px 28px 16px' }}>
         <button onClick={back} style={{ width:36, height:36, borderRadius:'50%', background:C.light, border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -640,9 +642,9 @@ function S_ExpenseEntry({ go, back, merchant, setMerchant, selectedDay, setSelec
       <div style={{ padding:'20px 28px 40px', marginTop:'auto' }}>
         <CTAButton label="Save Expense" onClick={back}/>
       </div>
-
-      {calOpen && <CalendarSheet selectedDay={selectedDay} onSelect={setSelectedDay} onClose={()=>setCalOpen(false)}/>}
     </div>
+    {calOpen && <CalendarSheet selectedDay={selectedDay} onSelect={setSelectedDay} onClose={()=>setCalOpen(false)}/>}
+    </React.Fragment>
   );
 }
 
@@ -848,7 +850,7 @@ function S_GuestPicks({ go, back, merchant, selectedDay }) {
           const allOthers = OTHERS.filter(p=>p.items.includes(item.id));
           const others    = sel ? allOthers : allOthers.filter(p=>p.name!=='You');
           const share     = myShare(item);
-          const splitBy   = sel ? allOthers.length+1 : allOthers.length;
+          const splitBy   = CLAIMS[item.id];
           return (
             <div key={item.id} onClick={()=>toggle(item.id)}
               style={{ display:'flex', alignItems:'flex-start', gap:12, padding:'16px 0',
@@ -993,21 +995,19 @@ function S_PaymentTracking({ back, merchant, selectedDay }) {
     <div style={{ display:'flex', flexDirection:'column', height:'100%', background:C.bg, position:'relative' }}>
       <NavBar title="Collecting payments" onBack={back}/>
 
-      {/* Expense hero section */}
-      <div style={{ background:'#fff', borderBottom:`1px solid ${C.border}`, padding:'20px 28px 24px' }}>
-        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:16 }}>
-          <div>
-            <div style={{ fontFamily:'Inter', fontSize:12, fontWeight:500, color:C.muted, letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:4 }}>
-              Mar {selectedDay} · 4 people
-            </div>
-            <div style={{ fontFamily:'Inter', fontWeight:800, fontSize:22, color:C.dark, letterSpacing:'-0.03em' }}>{merchant}</div>
+      {/* Expense hero — full-width section, visually distinct from cards */}
+      <div style={{ background:C.bg, borderBottom:`1px solid ${C.border}`, padding:'8px 28px 20px' }}>
+        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:2 }}>
+          <div style={{ flex:1 }}>
+            <div style={{ fontFamily:'Inter', fontWeight:800, fontSize:26, color:C.dark, letterSpacing:'-0.03em', lineHeight:1.1 }}>{merchant}</div>
+            <div style={{ fontFamily:'Inter', fontSize:13, color:C.muted, marginTop:5 }}>Mar {selectedDay} · {PEOPLE.length} people</div>
           </div>
-          <div style={{ textAlign:'right' }}>
-            <div style={{ fontFamily:'Inter', fontSize:11, color:C.muted, marginBottom:3 }}>Total</div>
+          <div style={{ textAlign:'right', paddingLeft:16 }}>
+            <div style={{ fontFamily:'Inter', fontSize:11, color:C.muted, marginBottom:2 }}>Total</div>
             <div style={{ fontFamily:'Inter', fontWeight:800, fontSize:22, color:C.dark, letterSpacing:'-0.03em' }}>{fmt(TOTAL)}</div>
           </div>
         </div>
-        <div style={{ height:5, borderRadius:3, background:C.light, overflow:'hidden', marginBottom:8 }}>
+        <div style={{ height:6, borderRadius:3, background:C.light, overflow:'hidden', marginTop:16, marginBottom:8 }}>
           <div style={{ height:'100%', borderRadius:3, width:`${progress*100}%`,
             background: allPaid ? C.green : C.accent, transition:'width .4s ease' }}/>
         </div>
