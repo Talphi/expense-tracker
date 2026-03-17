@@ -836,10 +836,11 @@ function S_GuestPicks({ go, back, merchant, selectedDay }) {
       </div>
       <div style={{ flex:1, overflowY:'auto', paddingInline:28, background:'#fff' }}>
         {ITEMS.map((item,idx) => {
-          const sel    = selected.has(item.id);
-          const others = OTHERS.filter(p=>p.items.includes(item.id));
-          const share  = myShare(item);
-          const splitBy= sel ? others.length+1 : others.length;
+          const sel       = selected.has(item.id);
+          const allOthers = OTHERS.filter(p=>p.items.includes(item.id));
+          const others    = sel ? allOthers : allOthers.filter(p=>p.name!=='You');
+          const share     = myShare(item);
+          const splitBy   = sel ? allOthers.length+1 : allOthers.length;
           return (
             <div key={item.id} onClick={()=>toggle(item.id)}
               style={{ display:'flex', alignItems:'flex-start', gap:12, padding:'16px 0',
