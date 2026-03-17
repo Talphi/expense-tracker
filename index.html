@@ -165,7 +165,7 @@ function CTAButton({ label, onClick, disabled, secondary }) {
 /* Calendar sheet (date picker) */
 function CalendarSheet({ selectedDay, onSelect, onClose }) {
   const [sel, setSel] = React.useState(selectedDay);
-  const max = Math.max(...Object.values(DAILY_SPEND));
+  const max = Math.max(...Object.values(DAILY_SPEND_BASE));
   return (
     <>
       <div onClick={onClose} style={{ position:'absolute', inset:0, background:'rgba(28,27,25,.45)', zIndex:200 }}/>
@@ -192,7 +192,7 @@ function CalendarSheet({ selectedDay, onSelect, onClose }) {
         <div style={{ display:'flex', flexWrap:'wrap', paddingInline:16 }}>
           {MARCH_GRID.map((day,i) => {
             if (!day) return <div key={`e${i}`} style={{ flex:'0 0 calc(100%/7)', height:56 }}/>;
-            const spend=DAILY_SPEND[day]||0, isSel=day===sel, isToday=day===17, isFuture=day>17;
+            const spend=DAILY_SPEND_BASE[day]||0, isSel=day===sel, isToday=day===17, isFuture=day>17;
             return (
               <div key={day} onClick={() => !isFuture && setSel(day)}
                 style={{ flex:'0 0 calc(100%/7)', height:56, display:'flex', flexDirection:'column',
