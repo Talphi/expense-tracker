@@ -117,8 +117,10 @@ const CURRENCIES = {
   EUR: { symbol:'€', rate:0.92, dec:2 },
   GBP: { symbol:'£', rate:0.79, dec:2 },
 };
-const CurrencyCtx = React.createContext(n => `$${n.toFixed(2)}`);
+const CurrencyCtx     = React.createContext(n => `$${n.toFixed(2)}`);
+const CurrencyCodeCtx = React.createContext('USD');
 const useFmt = () => React.useContext(CurrencyCtx);
+const useCurrencyCode = () => React.useContext(CurrencyCodeCtx);
 const C = {
   bg:'#F5F3EF', dark:'#1C1B19', muted:'#8A8680',
   accent:'#FF4422', surface:'#FFFFFF', border:'#E9E5DF',
@@ -528,10 +530,13 @@ function S_DayDetail({ day, selectedDay, back, goPayments, goEdit, merchant }) {
    EXPENSE ENTRY (Screen 2)
 ═══════════════════════════════════════════════════ */
 function S_ExpenseEntry({ go, back, merchant, setMerchant, selectedDay, setSelectedDay }) {
+  const fmt = useFmt();
   const [splitOn,     setSplitOn]     = React.useState(false);
   const [editingName, setEditingName] = React.useState(false);
   const [calOpen,     setCalOpen]     = React.useState(false);
   const dateLabel = selectedDay===17 ? `Today, Mar ${selectedDay}` : `Mar ${selectedDay}, 2026`;
+  const currCode = useCurrencyCode();
+  const { symbol, rate, dec } = CURRENCIES[currCode];
 
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%', background:C.bg, position:'relative' }}>
@@ -552,8 +557,8 @@ function S_ExpenseEntry({ go, back, merchant, setMerchant, selectedDay, setSelec
       <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:10, padding:'28px 28px 24px' }}>
         <span style={{ fontFamily:'Inter', fontSize:13, color:C.muted, letterSpacing:'0.08em', textTransform:'uppercase' }}>Amount</span>
         <div style={{ display:'flex', alignItems:'flex-start', gap:4 }}>
-          <span style={{ fontFamily:'Inter', fontWeight:300, fontSize:28, color:C.muted, paddingTop:10 }}>$</span>
-          <span style={{ fontFamily:'Inter', fontWeight:800, fontSize:80, color:C.dark, lineHeight:1, letterSpacing:'-0.04em' }}>84.50</span>
+          <span style={{ fontFamily:'Inter', fontWeight:300, fontSize:28, color:C.muted, paddingTop:10 }}>{symbol}</span>
+          <span style={{ fontFamily:'Inter', fontWeight:800, fontSize:80, color:C.dark, lineHeight:1, letterSpacing:'-0.04em' }}>{(84.50 * rate).toFixed(dec)}</span>
         </div>
       </div>
 
@@ -1142,11 +1147,12 @@ function App() {
     }
   }, [screen]);
 
-  const go         = n => setScreen(n);
-  const back       = () => setScreen(s => Math.max(0, s-1));
-  const goDay      = d => { setDayView(d); setScreen(1); };
-  const goPayments = () => setScreen(8);
-  const goEdit     = () => setScreen(2);
+  const [history,  setHistory]  = React.useState([]);
+  const go         = n => { setHistory(h => [...h, screen]); setScreen(n); };
+  const back       = () => { if (history.length) { setScreen(history[history.length-1]); setHistory(h => h.slice(0,-1)); } else setScreen(0); };
+  const goDay      = d => { setDayView(d); setHistory(h=>[...h, screen]); setScreen(1); };
+  const goPayments = () => { setHistory(h=>[...h, screen]); setScreen(8); };
+  const goEdit     = () => { setHistory(h=>[...h, screen]); setScreen(2); };
 
   const cls = n => {
     if (n===screen) return 'screen';
@@ -1154,7 +1160,7 @@ function App() {
   };
 
   return (
-    <CurrencyCtx.Provider value={fmt}>
+    <CurrencyCodeCtx.Provider value={currency}><CurrencyCtx.Provider value={fmt}>
       {splash && <SplashScreen onDone={()=>setSplash(false)}/>}
       <div className={cls(0)}><S_Home             go={go}   goDay={goDay} selectedDay={selectedDay} merchant={merchant} currency={currency} setCurrency={setCurrency}/></div>
       <div className={cls(1)}><S_DayDetail        day={dayView} selectedDay={selectedDay} back={back} goPayments={goPayments} goEdit={goEdit} merchant={merchant}/></div>
@@ -1165,7 +1171,7 @@ function App() {
       <div className={cls(6)}><S_GuestPicks       go={go}   back={back} merchant={merchant} selectedDay={selectedDay}/></div>
       <div className={cls(7)}><S_Summary          go={go}   back={back}/></div>
       <div className={cls(8)}><S_PaymentTracking  back={()=>setScreen(0)} merchant={merchant} selectedDay={selectedDay}/></div>
-    </CurrencyCtx.Provider>
+    </CurrencyCtx.Provider></CurrencyCodeCtx.Provider>
   );
 }
 
