@@ -617,18 +617,35 @@ function S3_ShareLink({ go, back }) {
 }
 
 /* ─── Screen 4: Guest Picks Items ───────────────────── */
+// Simulate: guest is "Priya". Other people's picks already known from PEOPLE.
+const OTHERS = PEOPLE.filter(p => p.name !== 'Priya');
+
 function S4_GuestPicks({ go, back }) {
   const [selected, setSelected] = React.useState(new Set());
+
   const toggle = (id) => setSelected(prev => {
     const s = new Set(prev);
     s.has(id) ? s.delete(id) : s.add(id);
     return s;
   });
-  const total = ITEMS.filter(i => selected.has(i.id)).reduce((s,i) => s + i.unit, 0);
+
+  // How many others already picked this item
+  const otherCount = (id) => OTHERS.filter(p => p.items.includes(id)).length;
+
+  // Price this guest pays: item.price / (others + 1 if selected, else just show item.price)
+  const myShare = (item) => {
+    if (!selected.has(item.id)) return null;
+    return item.price / (otherCount(item.id) + 1);
+  };
+
+  const total = ITEMS.reduce((s, item) => {
+    const share = myShare(item);
+    return s + (share || 0);
+  }, 0);
 
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%', background:'#fff' }}>
-      {/* Guest header — different feel */}
+      {/* Guest header */}
       <div style={{ background:C.dark, padding:'52px 28px 24px', display:'flex', flexDirection:'column', gap:6 }}>
         <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:4 }}>
           <Avatar name="T" color={C.accent} size={28} />
@@ -638,42 +655,78 @@ function S4_GuestPicks({ go, back }) {
           What did<br/>you have?
         </h1>
         <p style={{ fontFamily:'Inter', fontSize:13, color:'rgba(255,255,255,0.45)', marginTop:4 }}>
-          Tap the items you ordered
+          Tap items you ordered — shared items split automatically
         </p>
       </div>
 
       {/* Items */}
       <div style={{ flex:1, overflowY:'auto', paddingInline:28, background:'#fff' }}>
         {ITEMS.map((item, idx) => {
-          const sel = selected.has(item.id);
+          const sel     = selected.has(item.id);
+          const others  = OTHERS.filter(p => p.items.includes(item.id));
+          const share   = myShare(item);
+          const splitBy = sel ? others.length + 1 : others.length;
+
           return (
             <div key={item.id} onClick={() => toggle(item.id)}
-              style={{ display:'flex', alignItems:'center', gap:12, padding:'16px 0',
+              style={{ display:'flex', alignItems:'flex-start', gap:12, padding:'16px 0',
                 borderBottom: idx < ITEMS.length-1 ? `1px solid ${C.border}` : 'none',
                 cursor:'pointer' }}>
-              <div style={{ width:22, height:22, borderRadius:6, flexShrink:0, transition:'all 0.15s',
+
+              {/* Checkbox */}
+              <div style={{ width:22, height:22, borderRadius:6, flexShrink:0, marginTop:2, transition:'all 0.15s',
                 background: sel ? C.accent : 'transparent',
-                border: sel ? `none` : `1.5px solid ${C.border}`,
+                border: sel ? 'none' : `1.5px solid ${C.border}`,
                 display:'flex', alignItems:'center', justifyContent:'center' }}>
                 {sel && <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                   <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>}
               </div>
+
+              {/* Name + sharing info */}
               <div style={{ flex:1 }}>
-                <div style={{ fontFamily:'Inter', fontWeight:500, fontSize:15, color:C.dark,
-                  letterSpacing:'-0.01em' }}>{item.name}</div>
-                {item.qty > 1 && <div style={{ fontFamily:'Inter', fontSize:12, color:C.muted, marginTop:1 }}>
-                  {fmt(item.unit)} per person · {item.qty} on bill
-                </div>}
+                <div style={{ fontFamily:'Inter', fontWeight:500, fontSize:15, color:C.dark, letterSpacing:'-0.01em' }}>
+                  {item.name}
+                </div>
+                {others.length > 0 && (
+                  <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:5 }}>
+                    <div style={{ display:'flex' }}>
+                      {others.map((p, i) => (
+                        <div key={p.name} style={{ marginLeft: i === 0 ? 0 : -6 }}>
+                          <Avatar name={p.name} color={p.color} size={18} />
+                        </div>
+                      ))}
+                    </div>
+                    <span style={{ fontFamily:'Inter', fontSize:11, color:C.muted }}>
+                      {others.map(p => p.name).join(', ')} {others.length === 1 ? 'also had this' : 'also had this'}
+                      {sel ? ` — split ${splitBy} ways` : ''}
+                    </span>
+                  </div>
+                )}
               </div>
-              <span style={{ fontFamily:'Inter', fontWeight: sel?700:500, fontSize:15,
-                color: sel?C.accent:C.muted, letterSpacing:'-0.02em', transition:'all 0.15s' }}>
-                {fmt(item.unit)}
-              </span>
+
+              {/* Price */}
+              <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', flexShrink:0 }}>
+                {sel && others.length > 0 ? (
+                  <>
+                    <span style={{ fontFamily:'Inter', fontWeight:700, fontSize:15, color:C.accent, letterSpacing:'-0.02em' }}>
+                      {fmt(share)}
+                    </span>
+                    <span style={{ fontFamily:'Inter', fontSize:11, color:C.faint, textDecoration:'line-through', marginTop:1 }}>
+                      {fmt(item.price)}
+                    </span>
+                  </>
+                ) : (
+                  <span style={{ fontFamily:'Inter', fontWeight: sel?700:500, fontSize:15,
+                    color: sel ? C.accent : C.muted, letterSpacing:'-0.02em', transition:'all 0.15s' }}>
+                    {fmt(item.price)}
+                  </span>
+                )}
+              </div>
             </div>
           );
         })}
-        <div style={{ height:120 }} />
+        <div style={{ height:130 }} />
       </div>
 
       {/* Sticky bottom */}
@@ -682,8 +735,9 @@ function S4_GuestPicks({ go, back }) {
         padding:'16px 28px 36px', display:'flex', flexDirection:'column', gap:12 }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline' }}>
           <span style={{ fontFamily:'Inter', fontSize:13, color:C.muted }}>Your share</span>
-          <span style={{ fontFamily:'Inter', fontWeight:800, fontSize:28, color:C.dark,
-            letterSpacing:'-0.04em' }}>{fmt(total)}</span>
+          <span style={{ fontFamily:'Inter', fontWeight:800, fontSize:28, color:C.dark, letterSpacing:'-0.04em' }}>
+            {fmt(total)}
+          </span>
         </div>
         <CTAButton label="Confirm my order" onClick={() => go(5)} disabled={selected.size === 0} />
       </div>
@@ -695,10 +749,20 @@ function S4_GuestPicks({ go, back }) {
 function S5_Summary({ back }) {
   const perHead = (SERVICE + TAX) / PEOPLE.length;
 
-  const personTotal = (p) => {
-    const food = ITEMS.filter(i => p.items.includes(i.id)).reduce((s,i) => s + i.unit, 0);
-    return food + perHead;
+  // Count how many people claimed each item
+  const claims = {};
+  PEOPLE.forEach(p => p.items.forEach(id => {
+    claims[id] = (claims[id] || 0) + 1;
+  }));
+
+  // A person's share of one item
+  const itemShare = (id) => {
+    const item = ITEMS.find(i => i.id === id);
+    return item.price / claims[id];
   };
+
+  const personTotal = (p) =>
+    p.items.reduce((s, id) => s + itemShare(id), 0) + perHead;
 
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
@@ -713,41 +777,68 @@ function S5_Summary({ back }) {
         }
       />
 
-      <div style={{ padding:'4px 28px 24px' }}>
+      <div style={{ padding:'4px 28px 20px' }}>
         <p style={{ fontFamily:'Inter', fontSize:14, color:C.muted, lineHeight:'20px' }}>
-          Everyone confirmed. Here's the final breakdown.
+          Shared items have been split between everyone who had them.
         </p>
       </div>
 
       {/* Breakdown cards */}
-      <div style={{ flex:1, overflowY:'auto', padding:'0 28px', display:'flex', flexDirection:'column', gap:12 }}>
+      <div style={{ flex:1, overflowY:'auto', padding:'0 28px', display:'flex', flexDirection:'column', gap:10 }}>
         {PEOPLE.map((p) => {
-          const food = ITEMS.filter(i => p.items.includes(i.id));
           const total = personTotal(p);
           const isYou = p.name === 'You';
           return (
             <div key={p.name} style={{ background: isYou ? '#FFF5F3' : C.light,
               borderRadius:16, padding:'16px', border: isYou ? `1px solid #FFD5CE` : 'none' }}>
-              <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
+
+              {/* Person header */}
+              <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
                 <Avatar name={p.name} color={p.color} size={32} />
                 <div style={{ flex:1 }}>
                   <div style={{ fontFamily:'Inter', fontWeight:600, fontSize:14, color:C.dark }}>
                     {isYou ? 'You' : p.name}
                   </div>
                 </div>
-                <span style={{ fontFamily:'Inter', fontWeight:800, fontSize:20, color: isYou?C.accent:C.dark,
-                  letterSpacing:'-0.03em' }}>{fmt(total)}</span>
+                <span style={{ fontFamily:'Inter', fontWeight:800, fontSize:20,
+                  color: isYou ? C.accent : C.dark, letterSpacing:'-0.03em' }}>
+                  {fmt(total)}
+                </span>
               </div>
-              {food.map(i => (
-                <div key={i.id} style={{ display:'flex', justifyContent:'space-between',
-                  padding:'3px 0', paddingLeft:42 }}>
-                  <span style={{ fontFamily:'Inter', fontSize:13, color:C.muted }}>{i.name}</span>
-                  <span style={{ fontFamily:'Inter', fontSize:13, color:C.muted }}>{fmt(i.unit)}</span>
-                </div>
-              ))}
-              <div style={{ display:'flex', justifyContent:'space-between', padding:'3px 0 0', paddingLeft:42 }}>
-                <span style={{ fontFamily:'Inter', fontSize:13, color:C.faint }}>Tax & service</span>
-                <span style={{ fontFamily:'Inter', fontSize:13, color:C.faint }}>{fmt(perHead)}</span>
+
+              {/* Item lines */}
+              {p.items.map(id => {
+                const item   = ITEMS.find(i => i.id === id);
+                const share  = itemShare(id);
+                const shared = claims[id] > 1;
+                return (
+                  <div key={id} style={{ display:'flex', justifyContent:'space-between',
+                    alignItems:'baseline', padding:'3px 0', paddingLeft:42 }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                      <span style={{ fontFamily:'Inter', fontSize:13, color:C.muted }}>{item.name}</span>
+                      {shared && (
+                        <span style={{ fontFamily:'Inter', fontSize:10, color:C.faint,
+                          background:C.border, borderRadius:4, padding:'1px 5px' }}>
+                          ÷{claims[id]}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ display:'flex', alignItems:'baseline', gap:5 }}>
+                      {shared && (
+                        <span style={{ fontFamily:'Inter', fontSize:11, color:C.faint,
+                          textDecoration:'line-through' }}>{fmt(item.price)}</span>
+                      )}
+                      <span style={{ fontFamily:'Inter', fontSize:13, color:C.muted }}>{fmt(share)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Tax & service */}
+              <div style={{ display:'flex', justifyContent:'space-between', padding:'5px 0 0', paddingLeft:42,
+                marginTop:4, borderTop:`1px solid rgba(0,0,0,0.05)` }}>
+                <span style={{ fontFamily:'Inter', fontSize:12, color:C.faint }}>Tax & service (split equally)</span>
+                <span style={{ fontFamily:'Inter', fontSize:12, color:C.faint }}>{fmt(perHead)}</span>
               </div>
             </div>
           );
