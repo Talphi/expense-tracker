@@ -81,10 +81,10 @@ const perHead   = (SERVICE+TAX)/PEOPLE.length;
 const personAmt = p => p.items.reduce((s,id)=>s+itemShare(id),0)+perHead;
 
 /* Daily spending March 2026 */
-const DAILY_SPEND = {
+const DAILY_SPEND_BASE = {
   2:23.50, 3:45.20, 4:12.00, 5:67.80, 6:89.00, 7:34.50,
   9:28.00, 10:56.40, 11:19.80, 12:43.20, 13:78.50, 14:22.00,
-  16:31.60, 17:84.50,
+  16:31.60,
 };
 
 /* March 2026: starts Sunday → offset 6 (Mon-first grid) */
@@ -106,7 +106,7 @@ const DAY_EXPENSES = {
        { id:'e7', merchant:'Lunch w/ team',amount:46.41, cat:'Food',      type:'split', people:3 }],
   13: [{ id:'e8', merchant:'Farmers Mkt',  amount:78.50, cat:'Food',      type:'personal' }],
   14: [{ id:'e9', merchant:'Cinema',       amount:22.00, cat:'Fun',       type:'personal' }],
-  17: [{ id:'e1', merchant:'Tartine Bakery',amount:84.50,cat:'Food',      type:'eating-out', people:4, status:'collecting' }],
+  17: [],
 };
 
 const CAT_COLORS = { Food:'#FF4422', Shopping:'#5B7FFF', Transport:'#2BA97A', Health:'#E6A817', Bills:'#9B6EFF', Fun:'#FF8C42', default:'#8A8680' };
@@ -262,7 +262,9 @@ function SplashScreen({ onDone }) {
 /* ═══════════════════════════════════════════════════
    HOME SCREEN
 ═══════════════════════════════════════════════════ */
-function S_Home({ go, goDay }) {
+function S_Home({ go, goDay, selectedDay, merchant }) {
+  const EAT_OUT = { id:'e1', merchant, amount:84.50, cat:'Food', type:'eating-out', people:4, status:'collecting' };
+  const DAILY_SPEND = { ...DAILY_SPEND_BASE, [selectedDay]: (DAILY_SPEND_BASE[selectedDay]||0) + 84.50 };
   const totalMonth = Object.values(DAILY_SPEND).reduce((s,v)=>s+v, 0);
   const maxSpend   = Math.max(...Object.values(DAILY_SPEND));
 
@@ -305,7 +307,7 @@ function S_Home({ go, goDay }) {
             const spend   = DAILY_SPEND[day]||0;
             const isToday = day===17;
             const isFuture= day>17;
-            const hasExp  = !!DAY_EXPENSES[day];
+            const hasExp  = !!(DAY_EXPENSES[day]&&DAY_EXPENSES[day].length) || day===selectedDay;
             const intensity = spend ? spend/maxSpend : 0;
             const barH    = spend ? Math.max(3, Math.round(intensity*20)) : 0;
 
@@ -346,8 +348,9 @@ function S_Home({ go, goDay }) {
       <div style={{ padding:'16px 28px 0', borderTop:`1px solid ${C.border}` }}>
         <div style={{ fontFamily:'Inter', fontWeight:500, fontSize:11, color:C.muted,
           letterSpacing:'0.07em', textTransform:'uppercase', marginBottom:12 }}>Recent</div>
-        {[17,14,13].map(day => {
-          const exps = DAY_EXPENSES[day]||[];
+        {[selectedDay,14,13].filter((d,i,a)=>a.indexOf(d)===i).map(day => {
+          const baseExps = (DAY_EXPENSES[day]||[]).filter(e=>e.type!=='eating-out');
+          const exps = day===selectedDay ? [EAT_OUT, ...baseExps] : baseExps;
           return exps.map(e => (
             <div key={e.id} onClick={() => goDay(day)}
               style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 0',
@@ -377,8 +380,10 @@ function S_Home({ go, goDay }) {
 /* ═══════════════════════════════════════════════════
    DAY DETAIL SCREEN
 ═══════════════════════════════════════════════════ */
-function S_DayDetail({ day, back, goPayments, merchant }) {
-  const exps    = DAY_EXPENSES[day] || [];
+function S_DayDetail({ day, selectedDay, back, goPayments, goEdit, merchant }) {
+  const EAT_OUT = { id:'e1', merchant, amount:84.50, cat:'Food', type:'eating-out', people:4, status:'collecting' };
+  const baseExps = (DAY_EXPENSES[day]||[]).filter(e=>e.type!=='eating-out');
+  const exps    = day===selectedDay ? [EAT_OUT, ...baseExps] : baseExps;
   const total   = exps.reduce((s,e)=>s+e.amount, 0);
   const weekday = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   // March 1 2026 = Sunday (0), so day d → (0 + d - 1) % 7 + correction
@@ -405,7 +410,7 @@ function S_DayDetail({ day, back, goPayments, merchant }) {
                 <div style={{ width:12, height:12, borderRadius:'50%', background:CAT_COLORS[e.cat]||CAT_COLORS.default }}/>
               </div>
               <div style={{ flex:1 }}>
-                <div style={{ fontFamily:'Inter', fontWeight:600, fontSize:15, color:C.dark, letterSpacing:'-0.01em' }}>{e.type==='eating-out' ? merchant : e.merchant}</div>
+                <div style={{ fontFamily:'Inter', fontWeight:600, fontSize:15, color:C.dark, letterSpacing:'-0.01em' }}>{e.merchant}</div>
                 <div style={{ fontFamily:'Inter', fontSize:12, color:C.muted, marginTop:1 }}>{e.cat}</div>
               </div>
               <span style={{ fontFamily:'Inter', fontWeight:700, fontSize:17, color:C.dark, letterSpacing:'-0.02em' }}>{fmt(e.amount)}</span>
@@ -428,8 +433,13 @@ function S_DayDetail({ day, back, goPayments, merchant }) {
                   <div style={{ width:8, height:8, borderRadius:'50%', background:'#E6A817' }}/>
                   <span style={{ fontFamily:'Inter', fontSize:12, color:'#B88000', fontWeight:500 }}>Collecting payments</span>
                 </div>
-                <div style={{ marginTop:12 }}>
-                  <button onClick={goPayments} style={{ width:'100%', background:'#FFF0ED', border:`1px solid #FFD5CE`,
+                <div style={{ marginTop:12, display:'flex', gap:8 }}>
+                  <button onClick={goEdit} style={{ flex:1, background:C.light, border:'none',
+                    borderRadius:10, padding:'10px', cursor:'pointer',
+                    fontFamily:'Inter', fontWeight:600, fontSize:13, color:C.dark }}>
+                    Edit
+                  </button>
+                  <button onClick={goPayments} style={{ flex:2, background:'#FFF0ED', border:`1px solid #FFD5CE`,
                     borderRadius:10, padding:'10px', cursor:'pointer',
                     fontFamily:'Inter', fontWeight:600, fontSize:13, color:C.accent }}>
                     View payment status →
@@ -1052,10 +1062,11 @@ function App() {
     }
   }, [screen]);
 
-  const go      = n  => setScreen(n);
-  const back    = () => setScreen(s => Math.max(0, s-1));
-  const goDay   = d  => { setDayView(d); setScreen(1); };
+  const go         = n => setScreen(n);
+  const back       = () => setScreen(s => Math.max(0, s-1));
+  const goDay      = d => { setDayView(d); setScreen(1); };
   const goPayments = () => setScreen(8);
+  const goEdit     = () => setScreen(2);
 
   const cls = n => {
     if (n===screen) return 'screen';
@@ -1065,8 +1076,8 @@ function App() {
   return (
     <>
       {splash && <SplashScreen onDone={()=>setSplash(false)}/>}
-      <div className={cls(0)}><S_Home             go={go}   goDay={goDay}/></div>
-      <div className={cls(1)}><S_DayDetail        day={dayView} back={back} goPayments={goPayments} merchant={merchant}/></div>
+      <div className={cls(0)}><S_Home             go={go}   goDay={goDay} selectedDay={selectedDay} merchant={merchant}/></div>
+      <div className={cls(1)}><S_DayDetail        day={dayView} selectedDay={selectedDay} back={back} goPayments={goPayments} goEdit={goEdit} merchant={merchant}/></div>
       <div className={cls(2)}><S_ExpenseEntry     go={go}   back={back} merchant={merchant} setMerchant={setMerchant} selectedDay={selectedDay} setSelectedDay={setSelectedDay}/></div>
       <div className={cls(3)}><S_CaptureBill      go={go}   back={back} merchant={merchant}/></div>
       <div className={cls(4)}><S_ReviewItems      go={go}   back={back}/></div>
